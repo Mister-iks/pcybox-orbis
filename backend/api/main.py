@@ -1,8 +1,8 @@
 import asyncio
 import json
 import threading
+import time
 from datetime import datetime
-from typing import Any
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
@@ -12,6 +12,7 @@ from classifier.traffic import classify
 from resolver.dns_geo import enrich_ip
 from scanner.arp_scanner import ARPScanner, Device
 from detection.anomaly import AnomalyDetector
+import storage.db as db
 
 app = FastAPI(title="NetGraph API")
 
@@ -61,9 +62,7 @@ async def _handle_packet(pkt: Packet) -> None:
 
     geo = enrichment_cache[remote_ip]
 
-    # Skip internal LAN traffic
-    lan_key = f"lan:{remote_ip}"
-    if lan_key in lan_devices:
+    if f"lan:{remote_ip}" in lan_devices:
         return
 
     category = classify(geo.get("hostname"), pkt.dst_port, pkt.protocol)
@@ -102,19 +101,22 @@ async def _handle_packet(pkt: Packet) -> None:
             "bytes": 0,
             "packets": 0,
         }
-
     edges[edge_id]["bytes"] += pkt.size
     edges[edge_id]["packets"] += 1
 
-    # Run anomaly detection
+    # Storage: accumulate (non-blocking, batched)
+    minute = datetime.utcnow().strftime("%Y-%m-%dT%H:%M")
+    db.accumulate(minute, category.category, pkt.size)
+
+    # Anomaly detection
     loop = asyncio.get_event_loop()
     alerts = await loop.run_in_executor(None, detector.analyze_packet, pkt, geo)
-
     for alert in alerts:
-        # Mark node as alerted visually
         if alert.node_id and alert.node_id in nodes:
             nodes[alert.node_id]["alerted"] = True
-        await broadcast({"type": "alert", "alert": alert.to_dict()})
+        alert_dict = alert.to_dict()
+        await loop.run_in_executor(None, db.log_alert, alert_dict)
+        await broadcast({"type": "alert", "alert": alert_dict})
 
     await broadcast({
         "type": "update",
@@ -158,15 +160,14 @@ async def _handle_device(device: Device, is_new: bool) -> None:
         "dashed": True,
     }
 
-    # Device anomaly detection
     loop = asyncio.get_event_loop()
     alerts = await loop.run_in_executor(None, detector.analyze_device, device, is_new)
-
     for alert in alerts:
-        if alert.node_id:
-            if alert.node_id in lan_devices:
-                lan_devices[alert.node_id]["alerted"] = True
-        await broadcast({"type": "alert", "alert": alert.to_dict()})
+        if alert.node_id and alert.node_id in lan_devices:
+            lan_devices[alert.node_id]["alerted"] = True
+        alert_dict = alert.to_dict()
+        await loop.run_in_executor(None, db.log_alert, alert_dict)
+        await broadcast({"type": "alert", "alert": alert_dict})
 
     await broadcast({
         "type": "device_update",
@@ -174,6 +175,26 @@ async def _handle_device(device: Device, is_new: bool) -> None:
         "edge": edges[edge_id],
         "is_new": is_new,
     })
+
+
+# ── Background flush thread ──────────────────────────────────────────────────
+
+def _flush_loop() -> None:
+    while True:
+        time.sleep(10)
+        try:
+            db.flush()
+        except Exception:
+            pass
+
+
+def _cleanup_loop() -> None:
+    while True:
+        time.sleep(3600)
+        try:
+            db.cleanup_old_data(hours=24)
+        except Exception:
+            pass
 
 
 # ── Startup ──────────────────────────────────────────────────────────────────
@@ -184,14 +205,9 @@ async def startup() -> None:
     _loop = asyncio.get_event_loop()
 
     nodes["local"] = {
-        "id": "local",
-        "label": "This Device",
-        "ip": "local",
-        "category": "local",
-        "color": "#3b82f6",
-        "bytes": 0,
-        "packets": 0,
-        "alerted": False,
+        "id": "local", "label": "This Device", "ip": "local",
+        "category": "local", "color": "#3b82f6",
+        "bytes": 0, "packets": 0, "alerted": False,
     }
 
     sniffer = PacketSniffer(callback=on_packet)
@@ -199,6 +215,9 @@ async def startup() -> None:
 
     scanner = ARPScanner(callback=on_device, interval=30)
     threading.Thread(target=scanner.start, daemon=True).start()
+
+    threading.Thread(target=_flush_loop, daemon=True).start()
+    threading.Thread(target=_cleanup_loop, daemon=True).start()
 
 
 # ── REST endpoints ────────────────────────────────────────────────────────────
@@ -210,18 +229,22 @@ async def get_graph() -> dict:
         "edges": list(edges.values()),
     }
 
-
 @app.get("/devices")
 async def get_devices() -> dict:
     return {"devices": list(lan_devices.values())}
-
 
 @app.get("/alerts")
 async def get_alerts() -> dict:
     return {"alerts": detector.history[-100:]}
 
+@app.get("/timeline")
+async def get_timeline(minutes: int = 60) -> dict:
+    loop = asyncio.get_event_loop()
+    data = await loop.run_in_executor(None, db.get_timeline, minutes)
+    return {"timeline": data}
 
-# ── WebSocket ────────────────────────────────────────────────────────────────
+
+# ── WebSocket ─────────────────────────────────────────────────────────────────
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket) -> None:

@@ -3,6 +3,7 @@ import ForceGraph from './graph/ForceGraph'
 import MapView from './map/MapView'
 import Sidebar from './components/Sidebar'
 import { AlertBell, AlertPanel, AlertToasts } from './components/AlertPanel'
+import Timeline from './components/Timeline'
 import { useWebSocket } from './hooks/useWebSocket'
 
 const WS_URL = `ws://${window.location.host}/ws`
@@ -33,39 +34,45 @@ export default function App() {
         onClose={() => setSelected(null)}
       />
 
-      <div style={{ flex: 1, position: 'relative' }}>
-        {view === 'graph' && (
-          <ForceGraph
-            nodes={nodes}
-            edges={edges}
-            lanDevices={lanDevices}
-            alertedNodes={alertedNodes}
-            onNodeClick={setSelected}
-          />
-        )}
-        {view === 'map' && (
-          <MapView nodes={nodes} onNodeClick={setSelected} />
-        )}
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        {/* Main canvas */}
+        <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
+          {view === 'graph' && (
+            <ForceGraph
+              nodes={nodes}
+              edges={edges}
+              lanDevices={lanDevices}
+              alertedNodes={alertedNodes}
+              onNodeClick={setSelected}
+            />
+          )}
+          {view === 'map' && (
+            <MapView nodes={nodes} onNodeClick={setSelected} />
+          )}
 
-        {/* Top-right controls */}
-        <div style={{
-          position: 'absolute', top: 16, right: 16,
-          display: 'flex', alignItems: 'center', gap: 8,
-        }}>
-          <ViewToggle view={view} onChange={setView} />
-          <AlertBell unread={unread} onClick={handleBell} />
-          <StatusBadge status={status} lanCount={Object.keys(lanDevices).length} />
+          {/* Top-right controls */}
+          <div style={{
+            position: 'absolute', top: 16, right: 16,
+            display: 'flex', alignItems: 'center', gap: 8,
+          }}>
+            <ViewToggle view={view} onChange={setView} />
+            <AlertBell unread={unread} onClick={handleBell} />
+            <StatusBadge status={status} lanCount={Object.keys(lanDevices).length} />
+          </div>
+
+          {/* Alert panel */}
+          {showAlerts && (
+            <AlertPanel alerts={alerts} onClose={() => setShowAlerts(false)} />
+          )}
+
+          {/* Toast notifications (warning/critical only) */}
+          <AlertToasts alerts={alerts.filter(a => a.severity !== 'info').slice(0, 3)} />
+
+          {view === 'graph' && <Legend />}
         </div>
 
-        {/* Alert panel */}
-        {showAlerts && (
-          <AlertPanel alerts={alerts} onClose={() => setShowAlerts(false)} />
-        )}
-
-        {/* Toast notifications (warning/critical only) */}
-        <AlertToasts alerts={alerts.filter(a => a.severity !== 'info').slice(0, 3)} />
-
-        {view === 'graph' && <Legend />}
+        {/* Timeline bar */}
+        <Timeline />
       </div>
     </div>
   )
