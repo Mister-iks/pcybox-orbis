@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import ForceGraph from './graph/ForceGraph'
+import MapView from './map/MapView'
 import Sidebar from './components/Sidebar'
 import { useWebSocket } from './hooks/useWebSocket'
 
@@ -8,6 +9,7 @@ const WS_URL = `ws://${window.location.host}/ws`
 export default function App() {
   const { nodes, edges, lanDevices, packets, status } = useWebSocket(WS_URL)
   const [selected, setSelected] = useState(null)
+  const [view, setView] = useState('graph') // 'graph' | 'map'
 
   return (
     <div style={{ display: 'flex', height: '100vh', width: '100vw', overflow: 'hidden' }}>
@@ -20,15 +22,60 @@ export default function App() {
       />
 
       <div style={{ flex: 1, position: 'relative' }}>
-        <ForceGraph
-          nodes={nodes}
-          edges={edges}
-          lanDevices={lanDevices}
-          onNodeClick={setSelected}
-        />
-        <StatusBadge status={status} lanCount={Object.keys(lanDevices).length} />
-        <Legend />
+        {view === 'graph' && (
+          <ForceGraph
+            nodes={nodes}
+            edges={edges}
+            lanDevices={lanDevices}
+            onNodeClick={setSelected}
+          />
+        )}
+        {view === 'map' && (
+          <MapView
+            nodes={nodes}
+            onNodeClick={setSelected}
+          />
+        )}
+
+        {/* Top-right overlay */}
+        <div style={{
+          position: 'absolute', top: 16, right: 16,
+          display: 'flex', alignItems: 'center', gap: 8,
+        }}>
+          <ViewToggle view={view} onChange={setView} />
+          <StatusBadge status={status} lanCount={Object.keys(lanDevices).length} />
+        </div>
+
+        {view === 'graph' && <Legend />}
       </div>
+    </div>
+  )
+}
+
+function ViewToggle({ view, onChange }) {
+  return (
+    <div style={{
+      display: 'flex', background: '#1e293b',
+      border: '1px solid #334155', borderRadius: 20, overflow: 'hidden',
+    }}>
+      {[
+        { id: 'graph', icon: '⬡', label: 'Graphe' },
+        { id: 'map',   icon: '🌍', label: 'Carte' },
+      ].map(({ id, icon, label }) => (
+        <button
+          key={id}
+          onClick={() => onChange(id)}
+          style={{
+            background: view === id ? '#3b82f6' : 'transparent',
+            border: 'none', cursor: 'pointer',
+            color: view === id ? '#fff' : '#64748b',
+            padding: '5px 14px', fontSize: 11, fontWeight: 600,
+            transition: 'background 0.15s',
+          }}
+        >
+          {icon} {label}
+        </button>
+      ))}
     </div>
   )
 }
@@ -38,8 +85,8 @@ function StatusBadge({ status, lanCount }) {
   const labels = { connected: 'Live', connecting: 'Connexion…', disconnected: 'Déconnecté', error: 'Erreur' }
   return (
     <div style={{
-      position: 'absolute', top: 16, right: 16, background: '#1e293b',
-      border: '1px solid #334155', borderRadius: 20, padding: '4px 12px',
+      background: '#1e293b', border: '1px solid #334155',
+      borderRadius: 20, padding: '5px 14px',
       display: 'flex', alignItems: 'center', gap: 8,
     }}>
       <div style={{ width: 7, height: 7, borderRadius: '50%', background: colors[status] || '#94a3b8' }} />
@@ -55,11 +102,11 @@ function StatusBadge({ status, lanCount }) {
 
 function Legend() {
   const items = [
-    { color: '#f97316', label: 'Router', icon: '🔀' },
-    { color: '#a855f7', label: 'Phone', icon: '📱' },
-    { color: '#06b6d4', label: 'PC / Laptop', icon: '🖥️' },
-    { color: '#84cc16', label: 'IoT', icon: '🏠' },
-    { color: '#22c55e', label: 'HTTPS / Safe' },
+    { icon: '🔀', label: 'Router' },
+    { icon: '📱', label: 'Phone' },
+    { icon: '🖥️', label: 'PC' },
+    { icon: '🏠', label: 'IoT' },
+    { color: '#22c55e', label: 'HTTPS' },
     { color: '#f59e0b', label: 'Tracking' },
     { color: '#6366f1', label: 'CDN' },
     { color: '#38bdf8', label: 'DNS' },
@@ -67,8 +114,9 @@ function Legend() {
   ]
   return (
     <div style={{
-      position: 'absolute', bottom: 16, right: 16, background: '#1e293b',
-      border: '1px solid #334155', borderRadius: 8, padding: '10px 14px',
+      position: 'absolute', bottom: 16, right: 16,
+      background: '#1e293b', border: '1px solid #334155',
+      borderRadius: 8, padding: '10px 14px',
     }}>
       {items.map(({ color, label, icon }) => (
         <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>

@@ -1,6 +1,8 @@
 import asyncio
 import ipaddress
+import json
 import socket
+import urllib.request
 from functools import lru_cache
 from pathlib import Path
 from typing import Optional
@@ -39,7 +41,7 @@ def resolve_hostname(ip: str) -> Optional[str]:
 
 
 @lru_cache(maxsize=2048)
-def resolve_geo(ip: str) -> dict:
+def resolve_geo_maxmind(ip: str) -> dict:
     reader = get_geoip_reader()
     if not reader or is_private(ip):
         return {}
@@ -55,6 +57,38 @@ def resolve_geo(ip: str) -> dict:
         }
     except Exception:
         return {}
+
+
+@lru_cache(maxsize=2048)
+def resolve_geo_ipapi(ip: str) -> dict:
+    """Fallback: free ip-api.com (45 req/min, no key needed)."""
+    if is_private(ip):
+        return {}
+    try:
+        url = f"http://ip-api.com/json/{ip}?fields=status,country,countryCode,city,lat,lon,org"
+        req = urllib.request.Request(url, headers={"User-Agent": "netgraph/1.0"})
+        with urllib.request.urlopen(req, timeout=4) as resp:
+            data = json.loads(resp.read())
+        if data.get("status") == "success":
+            return {
+                "country": data.get("country"),
+                "country_code": data.get("countryCode"),
+                "city": data.get("city"),
+                "lat": data.get("lat"),
+                "lon": data.get("lon"),
+                "org": data.get("org"),
+            }
+    except Exception:
+        pass
+    return {}
+
+
+@lru_cache(maxsize=2048)
+def resolve_geo(ip: str) -> dict:
+    geo = resolve_geo_maxmind(ip)
+    if geo:
+        return geo
+    return resolve_geo_ipapi(ip)
 
 
 async def enrich_ip(ip: str) -> dict:
