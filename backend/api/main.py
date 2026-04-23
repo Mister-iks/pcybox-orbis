@@ -11,6 +11,7 @@ from capture.sniffer import Packet, PacketSniffer
 from classifier.traffic import classify
 from resolver.dns_geo import enrich_ip
 from scanner.arp_scanner import ARPScanner, Device
+from detection.anomaly import AnomalyDetector
 
 app = FastAPI(title="NetGraph API")
 
@@ -21,15 +22,17 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# In-memory state
+# ── State ─────────────────────────────────────────────────────────────────────
 nodes: dict[str, dict] = {}
 edges: dict[str, dict] = {}
 lan_devices: dict[str, dict] = {}
 connected_clients: list[WebSocket] = []
 enrichment_cache: dict[str, dict] = {}
+detector = AnomalyDetector()
 _loop: asyncio.AbstractEventLoop | None = None
-_scanner: ARPScanner | None = None
 
+
+# ── Broadcast ────────────────────────────────────────────────────────────────
 
 async def broadcast(message: dict) -> None:
     dead = []
@@ -58,7 +61,7 @@ async def _handle_packet(pkt: Packet) -> None:
 
     geo = enrichment_cache[remote_ip]
 
-    # Skip if the remote IP is a known LAN device (internal traffic)
+    # Skip internal LAN traffic
     lan_key = f"lan:{remote_ip}"
     if lan_key in lan_devices:
         return
@@ -81,6 +84,7 @@ async def _handle_packet(pkt: Packet) -> None:
             "color": category.color,
             "bytes": 0,
             "packets": 0,
+            "alerted": False,
         }
 
     nodes[node_id]["bytes"] += pkt.size
@@ -101,6 +105,16 @@ async def _handle_packet(pkt: Packet) -> None:
 
     edges[edge_id]["bytes"] += pkt.size
     edges[edge_id]["packets"] += 1
+
+    # Run anomaly detection
+    loop = asyncio.get_event_loop()
+    alerts = await loop.run_in_executor(None, detector.analyze_packet, pkt, geo)
+
+    for alert in alerts:
+        # Mark node as alerted visually
+        if alert.node_id and alert.node_id in nodes:
+            nodes[alert.node_id]["alerted"] = True
+        await broadcast({"type": "alert", "alert": alert.to_dict()})
 
     await broadcast({
         "type": "update",
@@ -128,9 +142,9 @@ def on_device(device: Device, is_new: bool) -> None:
 
 async def _handle_device(device: Device, is_new: bool) -> None:
     node = device.to_dict()
+    node["alerted"] = False
     lan_devices[node["id"]] = node
 
-    # LAN edge: local ↔ device (dashed, same-network link)
     edge_id = f"lan-edge-{device.ip}"
     edges[edge_id] = {
         "id": edge_id,
@@ -144,6 +158,16 @@ async def _handle_device(device: Device, is_new: bool) -> None:
         "dashed": True,
     }
 
+    # Device anomaly detection
+    loop = asyncio.get_event_loop()
+    alerts = await loop.run_in_executor(None, detector.analyze_device, device, is_new)
+
+    for alert in alerts:
+        if alert.node_id:
+            if alert.node_id in lan_devices:
+                lan_devices[alert.node_id]["alerted"] = True
+        await broadcast({"type": "alert", "alert": alert.to_dict()})
+
     await broadcast({
         "type": "device_update",
         "device": node,
@@ -156,8 +180,7 @@ async def _handle_device(device: Device, is_new: bool) -> None:
 
 @app.on_event("startup")
 async def startup() -> None:
-    global _loop, _scanner
-
+    global _loop
     _loop = asyncio.get_event_loop()
 
     nodes["local"] = {
@@ -168,18 +191,17 @@ async def startup() -> None:
         "color": "#3b82f6",
         "bytes": 0,
         "packets": 0,
+        "alerted": False,
     }
 
-    # Start packet sniffer
     sniffer = PacketSniffer(callback=on_packet)
     threading.Thread(target=sniffer.start, daemon=True).start()
 
-    # Start ARP scanner (first scan immediately, then every 30s)
-    _scanner = ARPScanner(callback=on_device, interval=30)
-    threading.Thread(target=_scanner.start, daemon=True).start()
+    scanner = ARPScanner(callback=on_device, interval=30)
+    threading.Thread(target=scanner.start, daemon=True).start()
 
 
-# ── REST endpoints ───────────────────────────────────────────────────────────
+# ── REST endpoints ────────────────────────────────────────────────────────────
 
 @app.get("/graph")
 async def get_graph() -> dict:
@@ -194,6 +216,11 @@ async def get_devices() -> dict:
     return {"devices": list(lan_devices.values())}
 
 
+@app.get("/alerts")
+async def get_alerts() -> dict:
+    return {"alerts": detector.history[-100:]}
+
+
 # ── WebSocket ────────────────────────────────────────────────────────────────
 
 @app.websocket("/ws")
@@ -205,6 +232,7 @@ async def websocket_endpoint(websocket: WebSocket) -> None:
         "type": "init",
         "nodes": list(nodes.values()) + list(lan_devices.values()),
         "edges": list(edges.values()),
+        "alerts": detector.history[-50:],
     }))
 
     try:

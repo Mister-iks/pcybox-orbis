@@ -6,6 +6,8 @@ export function useWebSocket(url) {
   const [edges, setEdges] = useState({})
   const [lanDevices, setLanDevices] = useState({})
   const [packets, setPackets] = useState([])
+  const [alerts, setAlerts] = useState([])
+  const [unread, setUnread] = useState(0)
   const [status, setStatus] = useState('connecting')
 
   useEffect(() => {
@@ -23,9 +25,7 @@ export function useWebSocket(url) {
         const msg = JSON.parse(evt.data)
 
         if (msg.type === 'init') {
-          const nodeMap = {}
-          const edgeMap = {}
-          const deviceMap = {}
+          const nodeMap = {}, edgeMap = {}, deviceMap = {}
           msg.nodes.forEach(n => {
             if (n.category === 'lan_device') deviceMap[n.id] = n
             else nodeMap[n.id] = n
@@ -34,6 +34,9 @@ export function useWebSocket(url) {
           setNodes(nodeMap)
           setEdges(edgeMap)
           setLanDevices(deviceMap)
+          if (msg.alerts?.length) {
+            setAlerts(msg.alerts.reverse())
+          }
         }
 
         if (msg.type === 'update') {
@@ -46,6 +49,11 @@ export function useWebSocket(url) {
           setLanDevices(prev => ({ ...prev, [msg.device.id]: msg.device }))
           setEdges(prev => ({ ...prev, [msg.edge.id]: msg.edge }))
         }
+
+        if (msg.type === 'alert') {
+          setAlerts(prev => [msg.alert, ...prev].slice(0, 200))
+          setUnread(prev => prev + 1)
+        }
       }
     }
 
@@ -53,5 +61,7 @@ export function useWebSocket(url) {
     return () => ws.current?.close()
   }, [url])
 
-  return { nodes, edges, lanDevices, packets, status }
+  const clearUnread = () => setUnread(0)
+
+  return { nodes, edges, lanDevices, packets, alerts, unread, clearUnread, status }
 }

@@ -1,15 +1,27 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import ForceGraph from './graph/ForceGraph'
 import MapView from './map/MapView'
 import Sidebar from './components/Sidebar'
+import { AlertBell, AlertPanel, AlertToasts } from './components/AlertPanel'
 import { useWebSocket } from './hooks/useWebSocket'
 
 const WS_URL = `ws://${window.location.host}/ws`
 
 export default function App() {
-  const { nodes, edges, lanDevices, packets, status } = useWebSocket(WS_URL)
+  const { nodes, edges, lanDevices, packets, alerts, unread, clearUnread, status } = useWebSocket(WS_URL)
   const [selected, setSelected] = useState(null)
-  const [view, setView] = useState('graph') // 'graph' | 'map'
+  const [view, setView] = useState('graph')
+  const [showAlerts, setShowAlerts] = useState(false)
+
+  const alertedNodes = useMemo(() =>
+    new Set(alerts.map(a => a.node_id).filter(Boolean)),
+    [alerts]
+  )
+
+  function handleBell() {
+    setShowAlerts(v => !v)
+    clearUnread()
+  }
 
   return (
     <div style={{ display: 'flex', height: '100vh', width: '100vw', overflow: 'hidden' }}>
@@ -27,24 +39,31 @@ export default function App() {
             nodes={nodes}
             edges={edges}
             lanDevices={lanDevices}
+            alertedNodes={alertedNodes}
             onNodeClick={setSelected}
           />
         )}
         {view === 'map' && (
-          <MapView
-            nodes={nodes}
-            onNodeClick={setSelected}
-          />
+          <MapView nodes={nodes} onNodeClick={setSelected} />
         )}
 
-        {/* Top-right overlay */}
+        {/* Top-right controls */}
         <div style={{
           position: 'absolute', top: 16, right: 16,
           display: 'flex', alignItems: 'center', gap: 8,
         }}>
           <ViewToggle view={view} onChange={setView} />
+          <AlertBell unread={unread} onClick={handleBell} />
           <StatusBadge status={status} lanCount={Object.keys(lanDevices).length} />
         </div>
+
+        {/* Alert panel */}
+        {showAlerts && (
+          <AlertPanel alerts={alerts} onClose={() => setShowAlerts(false)} />
+        )}
+
+        {/* Toast notifications (warning/critical only) */}
+        <AlertToasts alerts={alerts.filter(a => a.severity !== 'info').slice(0, 3)} />
 
         {view === 'graph' && <Legend />}
       </div>
@@ -62,17 +81,13 @@ function ViewToggle({ view, onChange }) {
         { id: 'graph', icon: '⬡', label: 'Graphe' },
         { id: 'map',   icon: '🌍', label: 'Carte' },
       ].map(({ id, icon, label }) => (
-        <button
-          key={id}
-          onClick={() => onChange(id)}
-          style={{
-            background: view === id ? '#3b82f6' : 'transparent',
-            border: 'none', cursor: 'pointer',
-            color: view === id ? '#fff' : '#64748b',
-            padding: '5px 14px', fontSize: 11, fontWeight: 600,
-            transition: 'background 0.15s',
-          }}
-        >
+        <button key={id} onClick={() => onChange(id)} style={{
+          background: view === id ? '#3b82f6' : 'transparent',
+          border: 'none', cursor: 'pointer',
+          color: view === id ? '#fff' : '#64748b',
+          padding: '5px 14px', fontSize: 11, fontWeight: 600,
+          transition: 'background 0.15s',
+        }}>
           {icon} {label}
         </button>
       ))}
@@ -110,7 +125,7 @@ function Legend() {
     { color: '#f59e0b', label: 'Tracking' },
     { color: '#6366f1', label: 'CDN' },
     { color: '#38bdf8', label: 'DNS' },
-    { color: '#94a3b8', label: 'Inconnu' },
+    { color: '#ef4444', label: '⚠ Alerte' },
   ]
   return (
     <div style={{

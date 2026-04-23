@@ -12,7 +12,7 @@ const CATEGORY_ICONS = {
   lan_device: null, // uses device.icon
 }
 
-export default function ForceGraph({ nodes, edges, lanDevices, onNodeClick }) {
+export default function ForceGraph({ nodes, edges, lanDevices, alertedNodes = new Set(), onNodeClick }) {
   const svgRef = useRef(null)
 
   useEffect(() => {
@@ -84,6 +84,25 @@ export default function ForceGraph({ nodes, edges, lanDevices, onNodeClick }) {
       )
 
     const radius = d => d.id === 'local' ? 22 : d.category === 'lan_device' ? 18 : 13
+
+    // Alert glow (red/amber ring for alerted nodes)
+    node.filter(d => alertedNodes.has(d.id) || d.alerted)
+      .append('circle')
+      .attr('r', d => radius(d) + 9)
+      .attr('fill', 'none')
+      .attr('stroke', '#ef4444')
+      .attr('stroke-width', 1.5)
+      .attr('stroke-opacity', 0.7)
+      .each(function () {
+        d3.select(this).append('animate')
+          .attr('attributeName', 'stroke-opacity')
+          .attr('values', '0.7;0.1;0.7')
+          .attr('dur', '1.5s').attr('repeatCount', 'indefinite')
+        d3.select(this).append('animate')
+          .attr('attributeName', 'r')
+          .attr('values', `${radius}+9;${radius}+15;${radius}+9`)
+          .attr('dur', '1.5s').attr('repeatCount', 'indefinite')
+      })
 
     // Outer glow for LAN devices and local
     node.filter(d => d.id === 'local' || d.category === 'lan_device')
