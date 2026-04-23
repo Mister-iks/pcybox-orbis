@@ -1,0 +1,9 @@
+fastapi==0.115.0
+uvicorn[standard]==0.30.6
+websockets==13.0.1
+scapy==2.6.0
+dnspython==2.7.0
+geoip2==4.8.0
+psutil==6.1.0
+python-dotenv==1.0.1
+aiofiles==24.1.0
