@@ -7,7 +7,7 @@ from typing import Callable, Optional
 
 import psutil
 
-from scanner.oui import lookup, DEVICE_TYPE_COLORS, DEVICE_TYPE_ICONS
+from scanner.oui import lookup, DEVICE_TYPE_COLORS
 
 try:
     from scapy.all import ARP, Ether, srp

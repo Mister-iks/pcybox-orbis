@@ -43,7 +43,7 @@ export function computePrivacyScore(nodes, alerts) {
   if (trackerNodes.length > 0) {
     const p = Math.min(trackerNodes.length * 4, 28)
     score -= p
-    factors.push({ icon: '📡', label: `${trackerNodes.length} tracker${trackerNodes.length > 1 ? 's' : ''} contacté${trackerNodes.length > 1 ? 's' : ''}`, penalty: p, bad: true })
+    factors.push({ icon: 'radio', label: `${trackerNodes.length} tracker${trackerNodes.length > 1 ? 's' : ''} contacté${trackerNodes.length > 1 ? 's' : ''}`, penalty: p, bad: true })
   }
 
   if (totalBytes > 0 && trackerBytes > 0) {
@@ -51,7 +51,7 @@ export function computePrivacyScore(nodes, alerts) {
     if (pct > 3) {
       const p = Math.min(Math.floor(pct / 3), 15)
       score -= p
-      factors.push({ icon: '📊', label: `${pct.toFixed(0)}% trafic vers trackers`, penalty: p, bad: true })
+      factors.push({ icon: 'bar-chart', label: `${pct.toFixed(0)}% trafic vers trackers`, penalty: p, bad: true })
     }
   }
 
@@ -59,37 +59,37 @@ export function computePrivacyScore(nodes, alerts) {
     const extra = adOrgNodes.length - trackerNodes.length
     const p = Math.min(extra * 3, 12)
     score -= p
-    factors.push({ icon: '📣', label: `${adOrgNodes.length} régie${adOrgNodes.length > 1 ? 's' : ''} publicitaire${adOrgNodes.length > 1 ? 's' : ''}`, penalty: p, bad: true })
+    factors.push({ icon: 'target', label: `${adOrgNodes.length} régie${adOrgNodes.length > 1 ? 's' : ''} publicitaire${adOrgNodes.length > 1 ? 's' : ''}`, penalty: p, bad: true })
   }
 
   if (beaconCount > 0) {
     const p = Math.min(beaconCount * 12, 24)
     score -= p
-    factors.push({ icon: '🔴', label: `${beaconCount} comportement${beaconCount > 1 ? 's' : ''} beacon`, penalty: p, bad: true })
+    factors.push({ icon: 'activity', label: `${beaconCount} comportement${beaconCount > 1 ? 's' : ''} beacon`, penalty: p, bad: true })
   }
 
   if (suspProcCount > 0) {
     const p = Math.min(suspProcCount * 8, 20)
     score -= p
-    factors.push({ icon: '⚠️', label: `${suspProcCount} processus suspect${suspProcCount > 1 ? 's' : ''}`, penalty: p, bad: true })
+    factors.push({ icon: 'alert-triangle', label: `${suspProcCount} processus suspect${suspProcCount > 1 ? 's' : ''}`, penalty: p, bad: true })
   }
 
   if (suspPortCount > 0) {
     const p = Math.min(suspPortCount * 7, 18)
     score -= p
-    factors.push({ icon: '🔓', label: `${suspPortCount} port${suspPortCount > 1 ? 's' : ''} dangereux`, penalty: p, bad: true })
+    factors.push({ icon: 'unlock', label: `${suspPortCount} port${suspPortCount > 1 ? 's' : ''} dangereux`, penalty: p, bad: true })
   }
 
   if (criticalCount > 0) {
     const p = Math.min(criticalCount * 10, 20)
     score -= p
-    factors.push({ icon: '🚨', label: `${criticalCount} alerte${criticalCount > 1 ? 's' : ''} critique${criticalCount > 1 ? 's' : ''}`, penalty: p, bad: true })
+    factors.push({ icon: 'shield-alert', label: `${criticalCount} alerte${criticalCount > 1 ? 's' : ''} critique${criticalCount > 1 ? 's' : ''}`, penalty: p, bad: true })
   }
 
   if (warningCount > 5) {
     const p = Math.min((warningCount - 5) * 2, 10)
     score -= p
-    factors.push({ icon: '🔔', label: `${warningCount} alertes`, penalty: p, bad: true })
+    factors.push({ icon: 'bell', label: `${warningCount} alertes`, penalty: p, bad: true })
   }
 
   // ── Bonuses ───────────────────────────────────────────────────────────────
@@ -98,12 +98,12 @@ export function computePrivacyScore(nodes, alerts) {
   if (totalPackets > 0 && httpsNodes.length > 0) {
     const ratio = httpsNodes.reduce((a, n) => a + (n.packets || 0), 0) / totalPackets
     if (ratio > 0.7) {
-      factors.push({ icon: '🔒', label: `${Math.round(ratio * 100)}% trafic HTTPS`, penalty: 0, bad: false })
+      factors.push({ icon: 'lock', label: `${Math.round(ratio * 100)}% trafic HTTPS`, penalty: 0, bad: false })
     }
   }
 
   if (extNodes.length > 0 && trackerNodes.length === 0) {
-    factors.push({ icon: '✅', label: 'Aucun tracker détecté', penalty: 0, bad: false })
+    factors.push({ icon: 'check-circle', label: 'Aucun tracker détecté', penalty: 0, bad: false })
   }
 
   score = Math.max(0, Math.min(100, Math.round(score)))

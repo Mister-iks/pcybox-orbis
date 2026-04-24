@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react'
+import { Hexagon, Globe, Wifi, Smartphone, Monitor, Cpu, ShieldCheck, Radio, Zap, HelpCircle, AlertTriangle } from 'lucide-react'
 import ForceGraph from './graph/ForceGraph'
 import MapView from './map/MapView'
 import Sidebar from './components/Sidebar'
@@ -86,23 +87,25 @@ export default function App() {
 }
 
 function ViewToggle({ view, onChange }) {
+  const items = [
+    { id: 'graph', Icon: Hexagon, label: 'Graphe' },
+    { id: 'map',   Icon: Globe,   label: 'Carte'  },
+  ]
   return (
     <div style={{
       display: 'flex', background: '#1e293b',
       border: '1px solid #334155', borderRadius: 20, overflow: 'hidden',
     }}>
-      {[
-        { id: 'graph', icon: '⬡', label: 'Graphe' },
-        { id: 'map',   icon: '🌍', label: 'Carte' },
-      ].map(({ id, icon, label }) => (
+      {items.map(({ id, Icon, label }) => (
         <button key={id} onClick={() => onChange(id)} style={{
           background: view === id ? '#3b82f6' : 'transparent',
           border: 'none', cursor: 'pointer',
           color: view === id ? '#fff' : '#64748b',
           padding: '5px 14px', fontSize: 11, fontWeight: 600,
+          display: 'flex', alignItems: 'center', gap: 5,
           transition: 'background 0.15s',
         }}>
-          {icon} {label}
+          <Icon size={12} /> {label}
         </button>
       ))}
     </div>
@@ -131,15 +134,16 @@ function StatusBadge({ status, lanCount }) {
 
 function Legend() {
   const items = [
-    { icon: '🔀', label: 'Router' },
-    { icon: '📱', label: 'Phone' },
-    { icon: '🖥️', label: 'PC' },
-    { icon: '🏠', label: 'IoT' },
-    { color: '#22c55e', label: 'HTTPS' },
-    { color: '#f59e0b', label: 'Tracking' },
-    { color: '#6366f1', label: 'CDN' },
-    { color: '#38bdf8', label: 'DNS' },
-    { color: '#ef4444', label: '⚠ Alerte' },
+    { Icon: Wifi,          color: '#f97316', label: 'Router'   },
+    { Icon: Smartphone,    color: '#a855f7', label: 'Phone'    },
+    { Icon: Monitor,       color: '#06b6d4', label: 'PC'       },
+    { Icon: Cpu,           color: '#84cc16', label: 'IoT'      },
+    { Icon: ShieldCheck,   color: '#22c55e', label: 'HTTPS'    },
+    { Icon: Radio,         color: '#f59e0b', label: 'Tracking' },
+    { Icon: Zap,           color: '#6366f1', label: 'CDN'      },
+    { Icon: Globe,         color: '#38bdf8', label: 'DNS'      },
+    { Icon: AlertTriangle, color: '#ef4444', label: 'Alerte'   },
+    { Icon: HelpCircle,    color: '#94a3b8', label: 'Inconnu'  },
   ]
   return (
     <div style={{
@@ -147,12 +151,9 @@ function Legend() {
       background: '#1e293b', border: '1px solid #334155',
       borderRadius: 8, padding: '10px 14px',
     }}>
-      {items.map(({ color, label, icon }) => (
+      {items.map(({ Icon, color, label }) => (
         <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-          {icon
-            ? <span style={{ fontSize: 12 }}>{icon}</span>
-            : <div style={{ width: 8, height: 8, borderRadius: '50%', background: color }} />
-          }
+          <Icon size={12} color={color} />
           <span style={{ fontSize: 10, color: '#94a3b8' }}>{label}</span>
         </div>
       ))}

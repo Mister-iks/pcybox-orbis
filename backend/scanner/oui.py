@@ -40,14 +40,6 @@ OUI_TABLE: dict[str, tuple[str, str]] = {
     "00D9D1": ("Sony", "iot"), "F8D0AC": ("Sony", "iot"),
 }
 
-DEVICE_TYPE_ICONS: dict[str, str] = {
-    "router": "🔀",
-    "phone":  "📱",
-    "pc":     "🖥️",
-    "tv":     "📺",
-    "iot":    "🏠",
-    "unknown":"❓",
-}
 
 DEVICE_TYPE_COLORS: dict[str, str] = {
     "router":  "#f97316",

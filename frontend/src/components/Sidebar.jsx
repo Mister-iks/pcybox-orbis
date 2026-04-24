@@ -1,4 +1,14 @@
+import { Wifi, Smartphone, Monitor, Tv, Cpu, HelpCircle } from 'lucide-react'
 import PrivacyScore from './PrivacyScore'
+
+const DEVICE_ICONS = {
+  router:  Wifi,
+  phone:   Smartphone,
+  pc:      Monitor,
+  tv:      Tv,
+  iot:     Cpu,
+  unknown: HelpCircle,
+}
 
 const CATEGORY_COLORS = {
   safe: '#22c55e', tracking: '#f59e0b', cdn: '#6366f1',
@@ -111,7 +121,7 @@ function DeviceRow({ device }) {
       borderBottom: '1px solid #1e293b',
       opacity: device.online === false ? 0.45 : 1,
     }}>
-      <span style={{ fontSize: 16 }}>{device.icon}</span>
+      {(() => { const Icon = DEVICE_ICONS[device.device_type] || HelpCircle; return <Icon size={16} color={device.color} /> })()}
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: 11, fontWeight: 600, color: '#e2e8f0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {device.hostname || device.vendor || device.ip}

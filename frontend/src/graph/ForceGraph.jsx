@@ -1,13 +1,14 @@
 import { useEffect, useRef } from 'react'
 import * as d3 from 'd3'
+import { nodeIconURI } from './icons'
 
 const CATEGORY_ICONS = {
-  local:      '💻',
-  safe:       '🔒',
-  tracking:   '📡',
-  cdn:        '⚡',
-  dns:        '🌐',
-  admin:      '🔧',
+  local:      null,
+  safe:       null,
+  tracking:   null,
+  cdn:        null,
+  dns:        null,
+  admin:      null,
   unknown:    '❓',
   lan_device: null, // uses device.icon
 }
@@ -120,11 +121,15 @@ export default function ForceGraph({ nodes, edges, lanDevices, alertedNodes = ne
       .attr('stroke-width', d => d.category === 'lan_device' ? 2.5 : 1.5)
       .attr('stroke-dasharray', d => d.online === false ? '4,3' : null)
 
-    node.append('text')
-      .attr('text-anchor', 'middle')
-      .attr('dominant-baseline', 'central')
-      .attr('font-size', d => d.id === 'local' ? 18 : d.category === 'lan_device' ? 14 : 12)
-      .text(d => d.icon || CATEGORY_ICONS[d.category] || '❓')
+    const iconSize = d => d.id === 'local' ? 20 : d.category === 'lan_device' ? 16 : 12
+    node.append('image')
+      .attr('href', d => nodeIconURI(d))
+      .attr('width',  d => iconSize(d))
+      .attr('height', d => iconSize(d))
+      .attr('x', d => -iconSize(d) / 2)
+      .attr('y', d => -iconSize(d) / 2)
+      .attr('pointer-events', 'none')
+      .attr('opacity', d => d.online === false ? 0.4 : 0.9)
 
     node.append('text')
       .attr('y', d => radius(d) + 11)

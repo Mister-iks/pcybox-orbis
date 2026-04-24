@@ -1,6 +1,6 @@
-# NetGraph — Live Network Traffic Visualizer
+# NetGraph - Live Network Traffic Visualizer
 
-Real-time, interactive graph that shows every network exchange between your device and external/internal IPs — colored by category, enriched with geolocation and DNS, with per-app attribution.
+Real-time, interactive graph that shows every network exchange between your device and external/internal IPs - colored by category, enriched with geolocation and DNS, with per-app attribution.
 
 ## Stack
 
@@ -14,7 +14,7 @@ Real-time, interactive graph that shows every network exchange between your devi
 
 ## Features (v0.1)
 
-- Force-directed live graph — nodes = hosts, edges = connections
+- Force-directed live graph - nodes = hosts, edges = connections
 - Color-coded by traffic type: HTTPS, DNS, Tracking, CDN, SSH…
 - Per-process attribution (which app is talking to which host)
 - Sidebar with host details: country, org, bytes, packets
@@ -27,7 +27,7 @@ Real-time, interactive graph that shows every network exchange between your devi
 
 - Python 3.11+
 - Node 18+
-- [Npcap](https://npcap.com/) (Windows) or libpcap (Linux/macOS) — for packet capture
+- [Npcap](https://npcap.com/) (Windows) or libpcap (Linux/macOS) - for packet capture
 - (Optional) [MaxMind GeoLite2 City DB](https://dev.maxmind.com/geoip/geolite2-free-geolocation-data) → place as `data/GeoLite2-City.mmdb`
 
 ### Backend
