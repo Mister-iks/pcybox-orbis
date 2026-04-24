@@ -4,53 +4,90 @@ import * as topojson from 'topojson-client'
 
 const WORLD_URL = 'https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json'
 
-// CSS animation injected once
 const STYLE = `
   @keyframes arcFlow {
     from { stroke-dashoffset: 1; }
     to   { stroke-dashoffset: 0; }
   }
-  .arc-flow {
-    animation: arcFlow linear infinite;
-  }
+  .arc-flow { animation: arcFlow linear infinite; }
 `
 
-export default function MapView({ nodes, onNodeClick }) {
-  const svgRef = useRef(null)
-  const gRef = useRef(null)
-  const projRef = useRef(null)
-  const [worldTopo, setWorldTopo] = useState(null)
-  const [userPos, setUserPos] = useState(null)
-  const [tooltip, setTooltip] = useState(null)
+// Deterministic per-node offset so same-city nodes don't fully overlap
+function jitter(id) {
+  let h = 0
+  for (const c of String(id)) h = (h * 31 + c.charCodeAt(0)) & 0xffff
+  const angle = (h / 0x8000) * Math.PI * 2
+  const r = 0.3 + (h & 0xff) / 255 * 1.2
+  return [Math.cos(angle) * r, Math.sin(angle) * r]
+}
 
-  // Load world map + user location once
+export default function MapView({ nodes, onNodeClick }) {
+  const svgRef  = useRef(null)
+  const gRef    = useRef(null)   // D3 selection
+  const projRef = useRef(null)
+  const kRef    = useRef(1)      // current zoom scale
+  const userPosRef = useRef(null)
+
+  const [worldTopo, setWorldTopo] = useState(null)
+  const [userPos,   setUserPos]   = useState(null)
+  const [tooltip,   setTooltip]   = useState(null)
+
   useEffect(() => {
     fetch(WORLD_URL).then(r => r.json()).then(setWorldTopo)
     navigator.geolocation?.getCurrentPosition(
       p => setUserPos([p.coords.longitude, p.coords.latitude]),
-      () => setUserPos([2.35, 48.85]) // Paris fallback
+      () => setUserPos([2.35, 48.85])
     )
     if (!navigator.geolocation) setUserPos([2.35, 48.85])
   }, [])
 
-  // Draw base map (world + user dot) once world + pos are ready
   useEffect(() => {
     if (!worldTopo || !userPos || !svgRef.current) return
+    userPosRef.current = userPos
     drawBase(worldTopo, userPos)
   }, [worldTopo, userPos])
 
-  // Update arcs & dots whenever nodes change
   useEffect(() => {
     if (!gRef.current || !projRef.current) return
     drawConnections(projRef.current)
   }, [nodes])
 
+  // ── Keep element sizes constant regardless of zoom level ──────────────────
+  function rescaleAll(k) {
+    const g = gRef.current
+    if (!g) return
+
+    g.select('.graticule').attr('stroke-width', 0.3 / k)
+    g.select('.borders').attr('stroke-width', 0.3 / k)
+    g.selectAll('.countries path').attr('stroke-width', 0.5 / k)
+
+    // Arcs
+    g.selectAll('path.arc-flow').each(function (d) {
+      const base = 0.8 + Math.log1p((d?.bytes || 0) / 512)
+      d3.select(this).attr('stroke-width', Math.min(base, 3.5) / k)
+    })
+
+    // Destination dots + labels
+    g.selectAll('g.dest').each(function (d) {
+      const r = Math.min(3 + Math.log1p((d?.packets || 0) * 0.4), 9)
+      const vr = r / k
+      d3.select(this).select('.dot').attr('r', vr).attr('stroke-width', 1 / k)
+      d3.select(this).select('.dot-label')
+        .attr('font-size', Math.max(9 / k, 7))
+        .attr('y', vr + 12 / k)
+    })
+
+    // User dot
+    g.select('.user-dot').attr('r', 7 / k).attr('stroke-width', 1.5 / k)
+    g.select('.user-label').attr('font-size', 11 / k).attr('x', function () {
+      return +d3.select(this).attr('data-ux') + 10 / k
+    })
+  }
+
   function drawBase(topo, pos) {
-    const el = svgRef.current
+    const el  = svgRef.current
     const svg = d3.select(el)
     svg.selectAll('*').remove()
-
-    // Inject CSS
     svg.append('defs').append('style').text(STYLE)
 
     const W = el.clientWidth
@@ -64,14 +101,18 @@ export default function MapView({ nodes, onNodeClick }) {
     const geoPath = d3.geoPath().projection(projection)
 
     const zoom = d3.zoom()
-      .scaleExtent([0.7, 14])
-      .on('zoom', e => g.attr('transform', e.transform))
+      .scaleExtent([0.7, 20])
+      .on('zoom', e => {
+        g.attr('transform', e.transform)
+        kRef.current = e.transform.k
+        rescaleAll(e.transform.k)
+      })
     svg.call(zoom)
 
     const g = svg.append('g')
     gRef.current = g
 
-    // Ocean background
+    // Ocean
     g.append('rect')
       .attr('width', W * 4).attr('height', H * 4)
       .attr('x', -W).attr('y', -H)
@@ -79,6 +120,7 @@ export default function MapView({ nodes, onNodeClick }) {
 
     // Graticule
     g.append('path')
+      .attr('class', 'graticule')
       .datum(d3.geoGraticule()())
       .attr('d', geoPath)
       .attr('fill', 'none')
@@ -96,15 +138,16 @@ export default function MapView({ nodes, onNodeClick }) {
       .attr('stroke', '#2d4a6e')
       .attr('stroke-width', 0.5)
 
-    // Country borders
+    // Borders
     g.append('path')
+      .attr('class', 'borders')
       .datum(topojson.mesh(topo, topo.objects.countries, (a, b) => a !== b))
       .attr('d', geoPath)
       .attr('fill', 'none')
       .attr('stroke', '#334155')
       .attr('stroke-width', 0.3)
 
-    // Layers for connections (drawn below user dot)
+    // Layers
     g.append('g').attr('class', 'arcs')
     g.append('g').attr('class', 'dots')
 
@@ -114,26 +157,27 @@ export default function MapView({ nodes, onNodeClick }) {
       const [ux, uy] = up
       const userG = g.append('g').attr('class', 'user-loc')
 
-      // Outer pulse rings
       for (let i = 0; i < 2; i++) {
+        const base = 10 + i * 8
         userG.append('circle')
-          .attr('cx', ux).attr('cy', uy)
-          .attr('r', 10 + i * 8)
-          .attr('fill', 'none')
-          .attr('stroke', '#3b82f6')
+          .attr('cx', ux).attr('cy', uy).attr('r', base)
+          .attr('fill', 'none').attr('stroke', '#3b82f6')
           .attr('stroke-opacity', 0.3 - i * 0.1)
           .append('animate').attr('attributeName', 'r')
-          .attr('values', `${10 + i * 8};${28 + i * 10};${10 + i * 8}`)
+          .attr('values', `${base};${base + 18};${base}`)
           .attr('dur', `${2.5 + i * 0.8}s`).attr('repeatCount', 'indefinite')
       }
 
       userG.append('circle')
+        .attr('class', 'user-dot')
         .attr('cx', ux).attr('cy', uy).attr('r', 7)
         .attr('fill', '#3b82f6').attr('fill-opacity', 0.9)
         .attr('stroke', '#93c5fd').attr('stroke-width', 1.5)
 
       userG.append('text')
-        .attr('x', ux + 11).attr('y', uy + 4)
+        .attr('class', 'user-label')
+        .attr('data-ux', ux)
+        .attr('x', ux + 10).attr('y', uy + 4)
         .attr('fill', '#93c5fd').attr('font-size', 11).attr('font-weight', '700')
         .text('You')
     }
@@ -142,34 +186,38 @@ export default function MapView({ nodes, onNodeClick }) {
   }
 
   function drawConnections(projection) {
-    if (!gRef.current) return
     const g = gRef.current
+    if (!g) return
     const geoPath = d3.geoPath().projection(projection)
-    const pos = userPos || [2.35, 48.85]
+    const pos = userPosRef.current || [2.35, 48.85]
+    const k   = kRef.current
 
     const geoNodes = Object.values(nodes)
       .filter(n => n.id !== 'local' && n.lat != null && n.lon != null)
 
-    // ── Arcs ──────────────────────────────────────────────────────────────
-    const arcs = g.select('.arcs').selectAll('path')
+    // ── Arcs ────────────────────────────────────────────────────────────────
+    const arcs = g.select('.arcs').selectAll('path.arc-flow')
       .data(geoNodes, d => d.id)
 
     arcs.enter().append('path')
+      .attr('class', 'arc-flow')
       .merge(arcs)
-      .attr('d', d => geoPath({
-        type: 'LineString',
-        coordinates: [pos, [d.lon, d.lat]],
-      }))
+      .attr('d', d => {
+        const [jx, jy] = jitter(d.id)
+        return geoPath({
+          type: 'LineString',
+          coordinates: [pos, [d.lon + jx, d.lat + jy]],
+        })
+      })
       .attr('fill', 'none')
       .attr('stroke', d => d.color || '#94a3b8')
-      .attr('stroke-opacity', 0.45)
-      .attr('stroke-width', d => Math.min(0.8 + Math.log1p((d.bytes || 0) / 512), 3.5))
-      .attr('class', 'arc-flow')
-      .style('animation-duration', d => `${1.5 + Math.random() * 2.5}s`)
+      .attr('stroke-opacity', 0.5)
+      .attr('stroke-width', d => Math.min(0.8 + Math.log1p((d.bytes || 0) / 512), 3.5) / k)
+      .style('animation-duration', d => `${1.8 + Math.random() * 2}s`)
       .each(function () {
         const len = this.getTotalLength() || 500
         d3.select(this)
-          .attr('stroke-dasharray', `${len * 0.12} ${len * 0.88}`)
+          .attr('stroke-dasharray', `${len * 0.1} ${len * 0.9}`)
           .attr('pathLength', 1)
       })
       .attr('cursor', 'pointer')
@@ -177,80 +225,63 @@ export default function MapView({ nodes, onNodeClick }) {
 
     arcs.exit().remove()
 
-    // ── Destination dots ──────────────────────────────────────────────────
+    // ── Destination dots ───────────────────────────────────────────────────
     const dotGroups = g.select('.dots').selectAll('g.dest')
       .data(geoNodes, d => d.id)
 
     const enter = dotGroups.enter().append('g').attr('class', 'dest')
-
-    // Pulse ring (only on enter)
-    enter.append('circle')
-      .attr('class', 'pulse')
-      .attr('fill', 'none')
-      .attr('stroke-opacity', 0)
-
-    // Main dot
-    enter.append('circle')
-      .attr('class', 'dot')
-      .attr('stroke', '#0a1628').attr('stroke-width', 1)
-      .attr('cursor', 'pointer')
-
-    // Tooltip label
-    enter.append('text')
-      .attr('class', 'dot-label')
-      .attr('font-size', 9).attr('fill', '#cbd5e1')
-      .attr('text-anchor', 'middle')
+    enter.append('circle').attr('class', 'pulse').attr('fill', 'none').attr('stroke-opacity', 0)
+    enter.append('circle').attr('class', 'dot').attr('stroke', '#0a1628').attr('cursor', 'pointer')
+    enter.append('text').attr('class', 'dot-label').attr('fill', '#cbd5e1').attr('text-anchor', 'middle')
 
     const all = enter.merge(dotGroups)
 
     all.each(function (d) {
-      const pt = projection([d.lon, d.lat])
+      const [jx, jy] = jitter(d.id)
+      const pt = projection([d.lon + jx, d.lat + jy])
       if (!pt) return
       const [x, y] = pt
-      const r = Math.min(3 + Math.log1p(d.packets || 0) * 0.4, 9)
+      const r  = Math.min(3 + Math.log1p(d.packets || 0) * 0.4, 9)
+      const vr = r / k
 
       d3.select(this).attr('transform', `translate(${x},${y})`)
 
-      d3.select(this).select('.pulse')
-        .attr('r', r + 3)
-        .attr('stroke', d.color || '#94a3b8')
-        .selectAll('animate').remove()
-
+      // Pulse
       const pulse = d3.select(this).select('.pulse')
-      pulse.append('animate').attr('attributeName', 'r')
-        .attr('values', `${r + 3};${r + 14};${r + 3}`)
-        .attr('dur', '3s').attr('repeatCount', 'indefinite')
+      pulse.attr('r', (r + 3) / k).attr('stroke', d.color || '#94a3b8')
+      pulse.selectAll('animate').remove()
       pulse.append('animate').attr('attributeName', 'stroke-opacity')
         .attr('values', '0.5;0;0.5').attr('dur', '3s').attr('repeatCount', 'indefinite')
 
       d3.select(this).select('.dot')
-        .attr('r', r)
+        .attr('r', vr)
         .attr('fill', d.color || '#94a3b8')
+        .attr('stroke-width', 1 / k)
 
       d3.select(this).select('.dot-label')
-        .attr('y', r + 12)
+        .attr('font-size', Math.max(9 / k, 7))
+        .attr('y', vr + 12 / k)
         .text(() => {
-          const lbl = d.label || d.ip
-          return lbl.length > 20 ? lbl.slice(0, 18) + '…' : lbl
+          const lbl = d.label || d.ip || ''
+          return lbl.length > 22 ? lbl.slice(0, 20) + '…' : lbl
         })
     })
 
     all
       .on('mouseover', (e, d) => setTooltip({ x: e.clientX, y: e.clientY, node: d }))
-      .on('mouseout', () => setTooltip(null))
-      .on('click', (_, d) => onNodeClick?.(d))
+      .on('mouseout',  () => setTooltip(null))
+      .on('click',     (_, d) => onNodeClick?.(d))
 
     dotGroups.exit().remove()
   }
 
-  const noGeoCount = Object.values(nodes).filter(n => n.id !== 'local' && !n.lat).length
   const geoCount   = Object.values(nodes).filter(n => n.id !== 'local' && n.lat).length
+  const noGeoCount = Object.values(nodes).filter(n => n.id !== 'local' && !n.lat).length
 
   return (
     <div style={{ width: '100%', height: '100%', position: 'relative' }}>
       <svg ref={svgRef} style={{ width: '100%', height: '100%' }} />
 
-      {/* Info overlay */}
       <div style={{
         position: 'absolute', top: 16, left: 16,
         background: '#1e293b', border: '1px solid #334155',
@@ -260,7 +291,6 @@ export default function MapView({ nodes, onNodeClick }) {
         {noGeoCount > 0 && <span> · <span style={{ color: '#f59e0b' }}>{noGeoCount}</span> sans géo</span>}
       </div>
 
-      {/* Tooltip */}
       {tooltip && (
         <div style={{
           position: 'fixed', left: tooltip.x + 14, top: tooltip.y - 10, zIndex: 100,
