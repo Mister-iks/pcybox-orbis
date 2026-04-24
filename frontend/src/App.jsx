@@ -5,6 +5,7 @@ import Sidebar from './components/Sidebar'
 import { AlertBell, AlertPanel, AlertToasts } from './components/AlertPanel'
 import Timeline from './components/Timeline'
 import { useWebSocket } from './hooks/useWebSocket'
+import { computePrivacyScore } from './scoring/privacy'
 
 const WS_URL = `ws://${window.location.host}/ws`
 
@@ -17,6 +18,11 @@ export default function App() {
   const alertedNodes = useMemo(() =>
     new Set(alerts.map(a => a.node_id).filter(Boolean)),
     [alerts]
+  )
+
+  const privacyScore = useMemo(() =>
+    computePrivacyScore(nodes, alerts),
+    [nodes, alerts]
   )
 
   function handleBell() {
@@ -32,6 +38,7 @@ export default function App() {
         packets={packets}
         selected={selected}
         onClose={() => setSelected(null)}
+        privacyScore={privacyScore}
       />
 
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>

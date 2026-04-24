@@ -1,3 +1,5 @@
+import PrivacyScore from './PrivacyScore'
+
 const CATEGORY_COLORS = {
   safe: '#22c55e', tracking: '#f59e0b', cdn: '#6366f1',
   dns: '#38bdf8', admin: '#fb923c', unknown: '#94a3b8', local: '#3b82f6',
@@ -10,7 +12,7 @@ function fmt(bytes) {
   return `${(bytes / 1024 / 1024).toFixed(2)} MB`
 }
 
-export default function Sidebar({ nodes, lanDevices, packets, selected, onClose }) {
+export default function Sidebar({ nodes, lanDevices, packets, selected, onClose, privacyScore }) {
   const extNodes = Object.values(nodes).filter(n => n.id !== 'local')
   const devList = Object.values(lanDevices)
   const totalBytes = extNodes.reduce((a, n) => a + (n.bytes || 0), 0)
@@ -35,6 +37,17 @@ export default function Sidebar({ nodes, lanDevices, packets, selected, onClose 
           <Stat label="Trafic" value={fmt(totalBytes)} />
         </div>
       </div>
+
+      {/* Privacy Score */}
+      {privacyScore && (
+        <PrivacyScore
+          score={privacyScore.score}
+          grade={privacyScore.grade}
+          color={privacyScore.color}
+          label={privacyScore.label}
+          factors={privacyScore.factors}
+        />
+      )}
 
       {/* Selected node detail */}
       {selected && (
