@@ -31,10 +31,17 @@ let backendProc  = null
 
 // ── Npcap ──────────────────────────────────────────────────────────────────────
 function isNpcapInstalled() {
-  try {
-    return execSync('reg query "HKLM\\SOFTWARE\\Npcap" /ve', { stdio: 'pipe', encoding: 'utf8' })
-      .includes('Npcap')
-  } catch { return false }
+  const keys = [
+    'HKLM\\SOFTWARE\\Npcap',
+    'HKLM\\SOFTWARE\\WOW6432Node\\Npcap',
+  ]
+  for (const key of keys) {
+    try {
+      const out = execSync(`reg query "${key}"`, { stdio: 'pipe', encoding: 'utf8' })
+      if (out.includes('Npcap') || out.includes(key)) return true
+    } catch {}
+  }
+  return false
 }
 
 function installNpcap() {
