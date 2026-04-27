@@ -89,6 +89,13 @@ async def _handle_packet(pkt: Packet) -> None:
     nodes[node_id]["bytes"] += pkt.size
     nodes[node_id]["packets"] += 1
 
+    if pkt.process_name:
+        procs = nodes[node_id].setdefault("processes", {})
+        if pkt.process_name not in procs:
+            procs[pkt.process_name] = {"bytes": 0, "packets": 0}
+        procs[pkt.process_name]["bytes"] += pkt.size
+        procs[pkt.process_name]["packets"] += 1
+
     edge_id = f"local-{node_id}-{pkt.protocol}"
     if edge_id not in edges:
         edges[edge_id] = {

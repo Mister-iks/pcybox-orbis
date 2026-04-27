@@ -1,5 +1,7 @@
 import { Wifi, Smartphone, Monitor, Tv, Cpu, HelpCircle } from 'lucide-react'
 import PrivacyScore from './PrivacyScore'
+import BandwidthChart from './BandwidthChart'
+import SearchBar from './SearchBar'
 
 const DEVICE_ICONS = {
   router:  Wifi,
@@ -22,10 +24,25 @@ function fmt(bytes) {
   return `${(bytes / 1024 / 1024).toFixed(2)} MB`
 }
 
-export default function Sidebar({ nodes, lanDevices, packets, selected, onClose, privacyScore }) {
+function matchesFilter(node, filter) {
+  if (!filter || (filter.category === 'all' && !filter.text)) return true
+  if (filter.category !== 'all' && node.category !== filter.category) return false
+  if (filter.text) {
+    const t = filter.text.toLowerCase()
+    return (node.label   || '').toLowerCase().includes(t)
+        || (node.ip      || '').toLowerCase().includes(t)
+        || (node.country || '').toLowerCase().includes(t)
+        || (node.org     || '').toLowerCase().includes(t)
+  }
+  return true
+}
+
+export default function Sidebar({ nodes, lanDevices, packets, selected, onClose, privacyScore, bandwidth, filter, onFilterChange }) {
   const extNodes = Object.values(nodes).filter(n => n.id !== 'local')
-  const devList = Object.values(lanDevices)
+  const devList  = Object.values(lanDevices)
   const totalBytes = extNodes.reduce((a, n) => a + (n.bytes || 0), 0)
+
+  const filteredNodes = extNodes.filter(n => matchesFilter(n, filter))
 
   return (
     <div style={{
@@ -34,13 +51,16 @@ export default function Sidebar({ nodes, lanDevices, packets, selected, onClose,
       flexDirection: 'column', overflow: 'hidden',
     }}>
       {/* Header */}
-      <div style={{ padding: '16px 20px', borderBottom: '1px solid #334155' }}>
-        <h1 style={{ fontSize: 18, fontWeight: 700, color: '#f1f5f9' }}>NetGraph</h1>
-        <p style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>Live Network Monitor</p>
+      <div style={{ padding: '14px 20px 8px', borderBottom: '1px solid #334155' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 2 }}>
+          <h1 style={{ fontSize: 17, fontWeight: 700, color: '#f1f5f9' }}>NetGraph</h1>
+          <span style={{ fontSize: 10, color: '#64748b' }}>Live Network Monitor</span>
+        </div>
+        <BandwidthChart data={bandwidth || []} />
       </div>
 
       {/* Stats */}
-      <div style={{ padding: '12px 20px', borderBottom: '1px solid #334155' }}>
+      <div style={{ padding: '10px 20px', borderBottom: '1px solid #334155' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
           <Stat label="Devices LAN" value={devList.length} color="#f97316" />
           <Stat label="Hôtes ext." value={extNodes.length} />
@@ -64,7 +84,7 @@ export default function Sidebar({ nodes, lanDevices, packets, selected, onClose,
         <div style={{ padding: '12px 20px', borderBottom: '1px solid #334155', background: '#0f172a' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
             <span style={{ fontSize: 12, fontWeight: 600, color: '#f1f5f9' }}>
-              {selected.icon || ''} {selected.label || selected.ip}
+              {selected.label || selected.ip}
             </span>
             <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', fontSize: 16 }}>✕</button>
           </div>
@@ -72,8 +92,11 @@ export default function Sidebar({ nodes, lanDevices, packets, selected, onClose,
         </div>
       )}
 
+      {/* Search / Filter */}
+      <SearchBar filter={filter} onChange={onFilterChange} />
+
       <div style={{ flex: 1, overflowY: 'auto' }}>
-        {/* LAN devices section */}
+        {/* LAN devices */}
         {devList.length > 0 && (
           <>
             <SectionTitle label={`Devices LAN (${devList.length})`} />
@@ -81,15 +104,15 @@ export default function Sidebar({ nodes, lanDevices, packets, selected, onClose,
           </>
         )}
 
-        {/* External hosts section */}
-        <SectionTitle label={`Hôtes externes (${extNodes.length})`} />
-        {extNodes
+        {/* External hosts */}
+        <SectionTitle label={`Hôtes externes (${filteredNodes.length}${filteredNodes.length < extNodes.length ? `/${extNodes.length}` : ''})`} />
+        {filteredNodes
           .sort((a, b) => (b.bytes || 0) - (a.bytes || 0))
           .map(n => <NodeRow key={n.id} node={n} />)}
       </div>
 
       {/* Live packet feed */}
-      <div style={{ borderTop: '1px solid #334155', maxHeight: 180, overflowY: 'auto' }}>
+      <div style={{ borderTop: '1px solid #334155', maxHeight: 160, overflowY: 'auto' }}>
         <SectionTitle label="Flux récents" />
         {packets.slice(0, 25).map((p, i) => <PacketRow key={i} packet={p} />)}
       </div>
@@ -99,7 +122,7 @@ export default function Sidebar({ nodes, lanDevices, packets, selected, onClose,
 
 function SectionTitle({ label }) {
   return (
-    <div style={{ padding: '6px 20px', fontSize: 10, color: '#64748b', textTransform: 'uppercase', letterSpacing: 1, background: '#1e293b', position: 'sticky', top: 0 }}>
+    <div style={{ padding: '5px 20px', fontSize: 10, color: '#64748b', textTransform: 'uppercase', letterSpacing: 1, background: '#1e293b', position: 'sticky', top: 0 }}>
       {label}
     </div>
   )
@@ -115,13 +138,14 @@ function Stat({ label, value, color }) {
 }
 
 function DeviceRow({ device }) {
+  const Icon = DEVICE_ICONS[device.device_type] || HelpCircle
   return (
     <div style={{
       padding: '7px 20px', display: 'flex', alignItems: 'center', gap: 8,
       borderBottom: '1px solid #1e293b',
       opacity: device.online === false ? 0.45 : 1,
     }}>
-      {(() => { const Icon = DEVICE_ICONS[device.device_type] || HelpCircle; return <Icon size={16} color={device.color} /> })()}
+      <Icon size={16} color={device.color} />
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: 11, fontWeight: 600, color: '#e2e8f0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {device.hostname || device.vendor || device.ip}
@@ -154,12 +178,23 @@ function NodeRow({ node }) {
 
 function NodeDetail({ node }) {
   const fields = [
-    ['IP', node.ip], ['MAC', node.mac], ['Hostname', node.hostname],
-    ['Vendor', node.vendor], ['Type', node.device_type],
-    ['Pays', node.country], ['Ville', node.city], ['Org', node.org],
-    ['Catégorie', node.category], ['Trafic', fmt(node.bytes || 0)],
-    ['Paquets', node.packets],
+    ['IP',        node.ip],
+    ['MAC',       node.mac],
+    ['Hostname',  node.hostname],
+    ['Vendor',    node.vendor],
+    ['Type',      node.device_type],
+    ['Pays',      node.country],
+    ['Ville',     node.city],
+    ['Org',       node.org],
+    ['Catégorie', node.category],
+    ['Trafic',    fmt(node.bytes || 0)],
+    ['Paquets',   node.packets],
   ]
+
+  const processes = node.processes
+    ? Object.entries(node.processes).sort(([, a], [, b]) => b.bytes - a.bytes).slice(0, 5)
+    : []
+
   return (
     <div>
       {fields.filter(([, v]) => v != null && v !== '').map(([k, v]) => (
@@ -168,18 +203,39 @@ function NodeDetail({ node }) {
           <span style={{ fontSize: 10, color: '#e2e8f0', maxWidth: 170, textAlign: 'right', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{v}</span>
         </div>
       ))}
+
+      {processes.length > 0 && (
+        <>
+          <div style={{ fontSize: 9, color: '#475569', textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 8, marginBottom: 4 }}>
+            Processus
+          </div>
+          {processes.map(([name, stats]) => (
+            <div key={name} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3, alignItems: 'center' }}>
+              <span style={{ fontSize: 10, color: '#94a3b8', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 150 }}>
+                {name}
+              </span>
+              <span style={{ fontSize: 9, color: '#475569', flexShrink: 0 }}>{fmt(stats.bytes)}</span>
+            </div>
+          ))}
+        </>
+      )}
     </div>
   )
 }
 
 function PacketRow({ packet }) {
-  const dir = packet.direction === 'out' ? '→' : '←'
-  const color = packet.direction === 'out' ? '#22c55e' : '#3b82f6'
+  const out   = packet.direction === 'out'
+  const color = out ? '#22c55e' : '#3b82f6'
   return (
     <div style={{ padding: '3px 20px', display: 'flex', alignItems: 'center', gap: 6 }}>
-      <span style={{ color, fontSize: 10, flexShrink: 0 }}>{dir}</span>
+      <span style={{ color, fontSize: 10, flexShrink: 0 }}>{out ? '→' : '←'}</span>
+      {packet.process && (
+        <span style={{ fontSize: 9, color: '#f59e0b', flexShrink: 0, maxWidth: 80, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {packet.process}
+        </span>
+      )}
       <span style={{ fontSize: 9, color: '#94a3b8', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-        {packet.process || packet.dst} · {packet.protocol}
+        {packet.dst} · {packet.protocol}
       </span>
       <span style={{ fontSize: 9, color: '#475569', flexShrink: 0 }}>{packet.size}B</span>
     </div>

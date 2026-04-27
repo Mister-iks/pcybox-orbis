@@ -2,25 +2,17 @@ import { useEffect, useRef } from 'react'
 import * as d3 from 'd3'
 import { nodeIconURI } from './icons'
 
-const CATEGORY_ICONS = {
-  local:      null,
-  safe:       null,
-  tracking:   null,
-  cdn:        null,
-  dns:        null,
-  admin:      null,
-  unknown:    '❓',
-  lan_device: null, // uses device.icon
-}
+export default function ForceGraph({ nodes, edges, lanDevices, alertedNodes = new Set(), onNodeClick, filter }) {
+  const svgRef   = useRef(null)
+  const nodeRef  = useRef(null)  // D3 selection of node groups
+  const linkRef  = useRef(null)  // D3 selection of links
 
-export default function ForceGraph({ nodes, edges, lanDevices, alertedNodes = new Set(), onNodeClick }) {
-  const svgRef = useRef(null)
-
+  // ── Full simulation — reruns when data changes ───────────────────────────
   useEffect(() => {
     const svg = d3.select(svgRef.current)
     svg.selectAll('*').remove()
 
-    const width = svgRef.current.clientWidth
+    const width  = svgRef.current.clientWidth
     const height = svgRef.current.clientHeight
 
     const zoom = d3.zoom().scaleExtent([0.15, 6]).on('zoom', e => g.attr('transform', e.transform))
@@ -28,7 +20,6 @@ export default function ForceGraph({ nodes, edges, lanDevices, alertedNodes = ne
 
     const g = svg.append('g')
 
-    // Arrow marker
     svg.append('defs').append('marker')
       .attr('id', 'arrow')
       .attr('viewBox', '0 -5 10 10')
@@ -37,23 +28,17 @@ export default function ForceGraph({ nodes, edges, lanDevices, alertedNodes = ne
       .attr('orient', 'auto')
       .append('path').attr('fill', '#475569').attr('d', 'M0,-5L10,0L0,5')
 
-    const allNodes = [
-      ...Object.values(nodes),
-      ...Object.values(lanDevices),
-    ]
+    const allNodes = [...Object.values(nodes), ...Object.values(lanDevices)]
     const allEdges = Object.values(edges)
 
-    // Force simulation
     const sim = d3.forceSimulation(allNodes)
       .force('link', d3.forceLink(allEdges).id(d => d.id).distance(d => d.dashed ? 80 : 130).strength(0.4))
       .force('charge', d3.forceManyBody().strength(d => d.category === 'lan_device' ? -300 : -400))
       .force('center', d3.forceCenter(width / 2, height / 2))
       .force('collision', d3.forceCollide(d => d.id === 'local' ? 30 : 20))
-      // LAN devices cluster near center
       .force('lan_x', d3.forceX(width / 2).strength(d => d.category === 'lan_device' ? 0.15 : 0))
       .force('lan_y', d3.forceY(height / 2).strength(d => d.category === 'lan_device' ? 0.15 : 0))
 
-    // Links
     const link = g.append('g').selectAll('line')
       .data(allEdges)
       .join('line')
@@ -63,7 +48,8 @@ export default function ForceGraph({ nodes, edges, lanDevices, alertedNodes = ne
       .attr('stroke-dasharray', d => d.dashed ? '5,4' : null)
       .attr('marker-end', d => d.dashed ? null : 'url(#arrow)')
 
-    // Link labels (only for non-LAN edges)
+    linkRef.current = link
+
     const linkLabel = g.append('g').selectAll('text')
       .data(allEdges.filter(e => !e.dashed))
       .join('text')
@@ -72,7 +58,6 @@ export default function ForceGraph({ nodes, edges, lanDevices, alertedNodes = ne
       .attr('text-anchor', 'middle')
       .text(d => d.label)
 
-    // Nodes
     const node = g.append('g').selectAll('g')
       .data(allNodes)
       .join('g')
@@ -80,13 +65,15 @@ export default function ForceGraph({ nodes, edges, lanDevices, alertedNodes = ne
       .on('click', (_, d) => onNodeClick?.(d))
       .call(d3.drag()
         .on('start', (e, d) => { if (!e.active) sim.alphaTarget(0.3).restart(); d.fx = d.x; d.fy = d.y })
-        .on('drag', (e, d) => { d.fx = e.x; d.fy = e.y })
-        .on('end', (e, d) => { if (!e.active) sim.alphaTarget(0); d.fx = null; d.fy = null })
+        .on('drag',  (e, d) => { d.fx = e.x; d.fy = e.y })
+        .on('end',   (e, d) => { if (!e.active) sim.alphaTarget(0); d.fx = null; d.fy = null })
       )
+
+    nodeRef.current = node
 
     const radius = d => d.id === 'local' ? 22 : d.category === 'lan_device' ? 18 : 13
 
-    // Alert glow (red/amber ring for alerted nodes)
+    // Alert glow
     node.filter(d => alertedNodes.has(d.id) || d.alerted)
       .append('circle')
       .attr('r', d => radius(d) + 9)
@@ -99,20 +86,15 @@ export default function ForceGraph({ nodes, edges, lanDevices, alertedNodes = ne
           .attr('attributeName', 'stroke-opacity')
           .attr('values', '0.7;0.1;0.7')
           .attr('dur', '1.5s').attr('repeatCount', 'indefinite')
-        d3.select(this).append('animate')
-          .attr('attributeName', 'r')
-          .attr('values', `${radius}+9;${radius}+15;${radius}+9`)
-          .attr('dur', '1.5s').attr('repeatCount', 'indefinite')
       })
 
-    // Outer glow for LAN devices and local
+    // Outer glow for local / LAN
     node.filter(d => d.id === 'local' || d.category === 'lan_device')
       .append('circle')
       .attr('r', d => radius(d) + 6)
       .attr('fill', d => d.color)
       .attr('fill-opacity', 0.15)
 
-    // Offline LAN devices: dashed border
     node.append('circle')
       .attr('r', radius)
       .attr('fill', d => d.color || '#475569')
@@ -138,7 +120,7 @@ export default function ForceGraph({ nodes, edges, lanDevices, alertedNodes = ne
       .attr('font-size', d => d.category === 'lan_device' ? 10 : 9)
       .attr('font-weight', d => d.category === 'lan_device' ? '600' : '400')
       .text(d => {
-        const label = d.label || d.ip
+        const label = d.label || d.ip || ''
         return label.length > 20 ? label.slice(0, 18) + '…' : label
       })
 
@@ -151,16 +133,43 @@ export default function ForceGraph({ nodes, edges, lanDevices, alertedNodes = ne
       link
         .attr('x1', d => d.source.x).attr('y1', d => d.source.y)
         .attr('x2', d => d.target.x).attr('y2', d => d.target.y)
-
       linkLabel
         .attr('x', d => (d.source.x + d.target.x) / 2)
         .attr('y', d => (d.source.y + d.target.y) / 2)
-
       node.attr('transform', d => `translate(${d.x},${d.y})`)
     })
 
     return () => sim.stop()
-  }, [nodes, edges, lanDevices])
+  }, [nodes, edges, lanDevices, alertedNodes])
+
+  // ── Filter: dim non-matching nodes + links without restarting sim ────────
+  useEffect(() => {
+    if (!nodeRef.current || !linkRef.current) return
+
+    function matches(d) {
+      if (!filter || (filter.category === 'all' && !filter.text)) return true
+      if (d.id === 'local') return true
+      const { text, category } = filter
+      if (category !== 'all' && d.category !== category) return false
+      if (text) {
+        const t = text.toLowerCase()
+        return (d.label   || '').toLowerCase().includes(t)
+            || (d.ip      || '').toLowerCase().includes(t)
+            || (d.country || '').toLowerCase().includes(t)
+            || (d.org     || '').toLowerCase().includes(t)
+            || (d.hostname|| '').toLowerCase().includes(t)
+      }
+      return true
+    }
+
+    nodeRef.current.attr('opacity', d => matches(d) ? 1 : 0.1)
+
+    linkRef.current.attr('stroke-opacity', d => {
+      const src = typeof d.source === 'object' ? d.source : { id: d.source, category: '' }
+      const tgt = typeof d.target === 'object' ? d.target : { id: d.target, category: '' }
+      return (matches(src) || matches(tgt)) ? (d.dashed ? 0.35 : 0.55) : 0.04
+    })
+  }, [filter])
 
   return <svg ref={svgRef} style={{ width: '100%', height: '100%', background: '#0f172a' }} />
 }

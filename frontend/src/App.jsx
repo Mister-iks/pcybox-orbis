@@ -11,10 +11,11 @@ import { computePrivacyScore } from './scoring/privacy'
 const WS_URL = `ws://${window.location.host}/ws`
 
 export default function App() {
-  const { nodes, edges, lanDevices, packets, alerts, unread, clearUnread, status } = useWebSocket(WS_URL)
+  const { nodes, edges, lanDevices, packets, alerts, unread, clearUnread, status, bandwidth } = useWebSocket(WS_URL)
   const [selected, setSelected] = useState(null)
   const [view, setView] = useState('graph')
   const [showAlerts, setShowAlerts] = useState(false)
+  const [filter, setFilter] = useState({ text: '', category: 'all' })
 
   const alertedNodes = useMemo(() =>
     new Set(alerts.map(a => a.node_id).filter(Boolean)),
@@ -40,10 +41,12 @@ export default function App() {
         selected={selected}
         onClose={() => setSelected(null)}
         privacyScore={privacyScore}
+        bandwidth={bandwidth}
+        filter={filter}
+        onFilterChange={setFilter}
       />
 
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        {/* Main canvas */}
         <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
           {view === 'graph' && (
             <ForceGraph
@@ -52,6 +55,7 @@ export default function App() {
               lanDevices={lanDevices}
               alertedNodes={alertedNodes}
               onNodeClick={setSelected}
+              filter={filter}
             />
           )}
           {view === 'map' && (
@@ -68,18 +72,15 @@ export default function App() {
             <StatusBadge status={status} lanCount={Object.keys(lanDevices).length} />
           </div>
 
-          {/* Alert panel */}
           {showAlerts && (
             <AlertPanel alerts={alerts} onClose={() => setShowAlerts(false)} />
           )}
 
-          {/* Toast notifications (warning/critical only) */}
           <AlertToasts alerts={alerts.filter(a => a.severity !== 'info').slice(0, 3)} />
 
           {view === 'graph' && <Legend />}
         </div>
 
-        {/* Timeline bar */}
         <Timeline />
       </div>
     </div>

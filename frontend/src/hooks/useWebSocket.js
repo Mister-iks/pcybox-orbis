@@ -9,6 +9,24 @@ export function useWebSocket(url) {
   const [alerts, setAlerts] = useState([])
   const [unread, setUnread] = useState(0)
   const [status, setStatus] = useState('connecting')
+  const [bandwidth, setBandwidth] = useState([])
+  const bwRef = useRef({})  // { secondTimestamp: totalBytes }
+
+  // Tick every second: build bandwidth array from buckets
+  useEffect(() => {
+    const id = setInterval(() => {
+      const now = Date.now()
+      const cutoff = now - 61000
+      Object.keys(bwRef.current).forEach(k => {
+        if (+k < cutoff) delete bwRef.current[k]
+      })
+      const arr = Object.entries(bwRef.current)
+        .map(([ts, bps]) => ({ ts: +ts, bps }))
+        .sort((a, b) => a.ts - b.ts)
+      setBandwidth(arr)
+    }, 1000)
+    return () => clearInterval(id)
+  }, [])
 
   useEffect(() => {
     function connect() {
@@ -34,15 +52,16 @@ export function useWebSocket(url) {
           setNodes(nodeMap)
           setEdges(edgeMap)
           setLanDevices(deviceMap)
-          if (msg.alerts?.length) {
-            setAlerts(msg.alerts.reverse())
-          }
+          if (msg.alerts?.length) setAlerts(msg.alerts.reverse())
         }
 
         if (msg.type === 'update') {
           setNodes(prev => ({ ...prev, [msg.node.id]: msg.node }))
           setEdges(prev => ({ ...prev, [msg.edge.id]: msg.edge }))
           setPackets(prev => [msg.packet, ...prev].slice(0, 100))
+          // Accumulate bytes into current second bucket
+          const sec = Math.floor(Date.now() / 1000) * 1000
+          bwRef.current[sec] = (bwRef.current[sec] || 0) + (msg.packet?.size || 0)
         }
 
         if (msg.type === 'device_update') {
@@ -63,5 +82,5 @@ export function useWebSocket(url) {
 
   const clearUnread = () => setUnread(0)
 
-  return { nodes, edges, lanDevices, packets, alerts, unread, clearUnread, status }
+  return { nodes, edges, lanDevices, packets, alerts, unread, clearUnread, status, bandwidth }
 }
