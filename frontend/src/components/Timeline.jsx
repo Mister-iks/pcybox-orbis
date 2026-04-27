@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import * as d3 from 'd3'
+import { API_BASE } from '../api'
 
 const EXPANDED_H = 110
 const COLLAPSED_H = 32
@@ -23,7 +24,7 @@ export default function Timeline() {
   const [range, setRange] = useState(60)
 
   const fetchTimeline = useCallback(() => {
-    fetch(`/timeline?minutes=${range}`)
+    fetch(`${API_BASE}/timeline?minutes=${range}`)
       .then(r => r.json())
       .then(d => setData(d.timeline || []))
       .catch(() => {})

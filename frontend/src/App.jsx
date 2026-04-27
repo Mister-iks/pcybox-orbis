@@ -7,8 +7,7 @@ import { AlertBell, AlertPanel, AlertToasts } from './components/AlertPanel'
 import Timeline from './components/Timeline'
 import { useWebSocket } from './hooks/useWebSocket'
 import { computePrivacyScore } from './scoring/privacy'
-
-const WS_URL = `ws://${window.location.host}/ws`
+import { WS_URL } from './api'
 
 export default function App() {
   const { nodes, edges, lanDevices, packets, alerts, unread, clearUnread, status, bandwidth } = useWebSocket(WS_URL)
