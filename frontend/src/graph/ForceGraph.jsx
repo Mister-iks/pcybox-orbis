@@ -4,8 +4,9 @@ import { nodeIconURI } from './icons'
 
 export default function ForceGraph({ nodes, edges, lanDevices, alertedNodes = new Set(), onNodeClick, filter }) {
   const svgRef   = useRef(null)
-  const nodeRef  = useRef(null)  // D3 selection of node groups
-  const linkRef  = useRef(null)  // D3 selection of links
+  const nodeRef  = useRef(null)
+  const linkRef  = useRef(null)
+  const posCache = useRef({})   // { nodeId: {x, y, fx, fy} } — persists across renders
 
   // ── Full simulation — reruns when data changes ───────────────────────────
   useEffect(() => {
@@ -31,10 +32,21 @@ export default function ForceGraph({ nodes, edges, lanDevices, alertedNodes = ne
     const allNodes = [...Object.values(nodes), ...Object.values(lanDevices)]
     const allEdges = Object.values(edges)
 
+    // Restore cached positions — locked nodes won't move at all
+    let hasNew = false
+    allNodes.forEach(n => {
+      const c = posCache.current[n.id]
+      if (c) { n.x = c.x; n.y = c.y; n.fx = c.fx; n.fy = c.fy }
+      else    { hasNew = true }
+    })
+
     const sim = d3.forceSimulation(allNodes)
+      .alpha(hasNew ? 0.6 : 0.05)   // barely heat up if nothing new
+      .alphaDecay(0.04)              // settle ~2× faster than default
+      .velocityDecay(0.55)           // more friction → less overshooting
       .force('link', d3.forceLink(allEdges).id(d => d.id).distance(d => d.dashed ? 80 : 130).strength(0.4))
       .force('charge', d3.forceManyBody().strength(d => d.category === 'lan_device' ? -300 : -400))
-      .force('center', d3.forceCenter(width / 2, height / 2))
+      .force('center', d3.forceCenter(width / 2, height / 2).strength(0.03))
       .force('collision', d3.forceCollide(d => d.id === 'local' ? 30 : 20))
       .force('lan_x', d3.forceX(width / 2).strength(d => d.category === 'lan_device' ? 0.15 : 0))
       .force('lan_y', d3.forceY(height / 2).strength(d => d.category === 'lan_device' ? 0.15 : 0))
@@ -64,9 +76,13 @@ export default function ForceGraph({ nodes, edges, lanDevices, alertedNodes = ne
       .attr('cursor', 'pointer')
       .on('click', (_, d) => onNodeClick?.(d))
       .call(d3.drag()
-        .on('start', (e, d) => { if (!e.active) sim.alphaTarget(0.3).restart(); d.fx = d.x; d.fy = d.y })
+        .on('start', (e, d) => { if (!e.active) sim.alphaTarget(0.15).restart(); d.fx = d.x; d.fy = d.y })
         .on('drag',  (e, d) => { d.fx = e.x; d.fy = e.y })
-        .on('end',   (e, d) => { if (!e.active) sim.alphaTarget(0); d.fx = null; d.fy = null })
+        .on('end',   (e, d) => {
+          if (!e.active) sim.alphaTarget(0)
+          // Lock the node where it was dropped
+          posCache.current[d.id] = { x: d.x, y: d.y, fx: d.x, fy: d.y }
+        })
       )
 
     nodeRef.current = node
@@ -137,6 +153,14 @@ export default function ForceGraph({ nodes, edges, lanDevices, alertedNodes = ne
         .attr('x', d => (d.source.x + d.target.x) / 2)
         .attr('y', d => (d.source.y + d.target.y) / 2)
       node.attr('transform', d => `translate(${d.x},${d.y})`)
+    })
+
+    // Once cooled: lock every node in place and save to cache
+    sim.on('end', () => {
+      allNodes.forEach(n => {
+        n.fx = n.x; n.fy = n.y
+        posCache.current[n.id] = { x: n.x, y: n.y, fx: n.x, fy: n.y }
+      })
     })
 
     return () => sim.stop()
