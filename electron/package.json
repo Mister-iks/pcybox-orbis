@@ -1,0 +1,54 @@
+{
+  "name": "netgraph",
+  "version": "1.0.0",
+  "description": "Real-time network traffic visualizer",
+  "main": "main.js",
+  "author": "Mister-iks",
+  "license": "MIT",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder --win --x64",
+    "build:dir": "electron-builder --win --x64 --dir"
+  },
+  "devDependencies": {
+    "electron": "^28.3.3",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "com.netgraph.app",
+    "productName": "NetGraph",
+    "directories": {
+      "output": "../dist/installer"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "splash.html"
+    ],
+    "extraResources": [
+      {
+        "from": "../dist/backend/netgraph-backend.exe",
+        "to": "netgraph-backend.exe"
+      },
+      {
+        "from": "../frontend/dist",
+        "to": "frontend_dist"
+      },
+      {
+        "from": "../resources/npcap-installer.exe",
+        "to": "npcap-installer.exe"
+      }
+    ],
+    "win": {
+      "target": "nsis",
+      "requestedExecutionLevel": "requireAdministrator"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "NetGraph"
+    }
+  }
+}

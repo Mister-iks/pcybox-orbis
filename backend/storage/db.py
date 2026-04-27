@@ -1,11 +1,23 @@
 import json
+import os
 import sqlite3
+import sys
 import threading
 from collections import defaultdict
 from datetime import datetime, timedelta
 from pathlib import Path
 
-DB_PATH = Path(__file__).parent.parent.parent / "data" / "netgraph.db"
+def _get_db_path() -> Path:
+    if getattr(sys, 'frozen', False):
+        # PyInstaller bundle: write to %LOCALAPPDATA%\NetGraph\ (always writable)
+        appdata = Path(os.environ.get('LOCALAPPDATA', Path.home()))
+        db_dir = appdata / 'NetGraph'
+    else:
+        db_dir = Path(__file__).parent.parent.parent / 'data'
+    db_dir.mkdir(parents=True, exist_ok=True)
+    return db_dir / 'netgraph.db'
+
+DB_PATH = _get_db_path()
 
 _conn: sqlite3.Connection | None = None
 _conn_lock = threading.Lock()
