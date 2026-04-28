@@ -12,8 +12,8 @@ const resourcesDir = isDev
   : process.resourcesPath
 
 const backendExe = isDev
-  ? path.join(resourcesDir, 'dist', 'backend', 'netgraph-backend.exe')
-  : path.join(resourcesDir, 'netgraph-backend.exe')
+  ? path.join(resourcesDir, 'dist', 'backend', 'pcybox-orbis-backend.exe')
+  : path.join(resourcesDir, 'pcybox-orbis-backend.exe')
 
 const npcapInstaller = isDev
   ? path.join(resourcesDir, 'resources', 'npcap-installer.exe')

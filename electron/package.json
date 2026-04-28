@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "Real-time network traffic visualizer",
   "main": "main.js",
-  "author": "Mister-iks",
+  "author": "Pcybox | Ibrahima Khalilou lahi SAMB",
   "license": "MIT",
   "scripts": {
     "start": "electron .",
@@ -32,8 +32,8 @@
         "to": "icon.png"
       },
       {
-        "from": "../dist/backend/netgraph-backend.exe",
-        "to": "netgraph-backend.exe"
+        "from": "../dist/backend/pcybox-orbis-backend.exe",
+        "to": "pcybox-orbis-backend.exe"
       },
       {
         "from": "../frontend/dist",

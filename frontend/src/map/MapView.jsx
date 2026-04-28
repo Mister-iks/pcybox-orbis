@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import * as d3 from 'd3'
 import * as topojson from 'topojson-client'
 
-const WORLD_URL = 'https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json'
+// Bundled locally — no CDN dependency
+const WORLD_URL = '/countries-110m.json'
 
 const STYLE = `
   @keyframes arcFlow {
@@ -12,14 +13,12 @@ const STYLE = `
   .arc-flow { animation: arcFlow linear infinite; }
 `
 
-// Deterministic hash for a node id (0..65535)
 function hashId(id) {
   let h = 0
   for (const c of String(id)) h = (h * 31 + c.charCodeAt(0)) & 0xffff
   return h
 }
 
-// Deterministic per-node offset so same-city nodes don't fully overlap
 function jitter(id) {
   const h = hashId(id)
   const angle = (h / 0x8000) * Math.PI * 2
@@ -27,16 +26,65 @@ function jitter(id) {
   return [Math.cos(angle) * r, Math.sin(angle) * r]
 }
 
-// Deterministic animation duration so it doesn't reset on every data update
 function animDur(id) {
   return (1.8 + (hashId(id) / 0xffff) * 2).toFixed(2) + 's'
 }
 
+// ── Label collision detection in map-coordinate space ────────────────────────
+// Nodes with more traffic take priority.
+function applyLabelCollision(g, k) {
+  const SHOW_AT = 2.5
+  if (k < SHOW_AT) {
+    g.selectAll('g.dest .dot-label').attr('display', 'none')
+    return
+  }
+
+  const items = []
+  g.selectAll('g.dest').each(function (d) {
+    const t = d3.select(this).attr('transform') || ''
+    const m = t.match(/translate\(([^,]+),([^)]+)\)/)
+    if (!m) return
+    items.push({ el: this, d, mx: +m[1], my: +m[2] })
+  })
+
+  // Highest-traffic nodes get label priority
+  items.sort((a, b) => (b.d?.bytes || 0) - (a.d?.bytes || 0))
+
+  const placed = []  // accepted bounding boxes (map coords)
+
+  for (const { el, d, mx, my } of items) {
+    const labelSel = d3.select(el).select('.dot-label')
+    const text = labelSel.text()
+    if (!text) { labelSel.attr('display', 'none'); continue }
+
+    const fs  = Math.max(9 / k, 5)
+    const lw  = text.length * fs * 0.58
+    const lh  = fs + 2
+    const r   = Math.min(3 + Math.log1p((d?.packets || 0) * 0.4), 9) / k
+    const ly  = my + r + 10 / k  // label center-y (below dot)
+    const pad = 4 / k
+
+    const box = { x: mx - lw / 2 - pad, y: ly - lh / 2 - pad, w: lw + pad * 2, h: lh + pad * 2 }
+
+    const hit = placed.some(b =>
+      box.x < b.x + b.w && box.x + box.w > b.x &&
+      box.y < b.y + b.h && box.y + box.h > b.y
+    )
+
+    if (hit) {
+      labelSel.attr('display', 'none')
+    } else {
+      labelSel.attr('display', null)
+      placed.push(box)
+    }
+  }
+}
+
 export default function MapView({ nodes, onNodeClick }) {
-  const svgRef  = useRef(null)
-  const gRef    = useRef(null)   // D3 selection
-  const projRef = useRef(null)
-  const kRef    = useRef(1)      // current zoom scale
+  const svgRef    = useRef(null)
+  const gRef      = useRef(null)
+  const projRef   = useRef(null)
+  const kRef      = useRef(1)
   const userPosRef = useRef(null)
 
   const [worldTopo, setWorldTopo] = useState(null)
@@ -63,7 +111,6 @@ export default function MapView({ nodes, onNodeClick }) {
     drawConnections(projRef.current)
   }, [nodes])
 
-  // ── Keep element sizes constant regardless of zoom level ──────────────────
   function rescaleAll(k) {
     const g = gRef.current
     if (!g) return
@@ -72,28 +119,27 @@ export default function MapView({ nodes, onNodeClick }) {
     g.select('.borders').attr('stroke-width', 0.3 / k)
     g.selectAll('.countries path').attr('stroke-width', 0.5 / k)
 
-    // Arcs
     g.selectAll('path.arc-flow').each(function (d) {
       const base = 0.8 + Math.log1p((d?.bytes || 0) / 512)
       d3.select(this).attr('stroke-width', Math.min(base, 3.5) / k)
     })
 
-    // Destination dots + labels
     g.selectAll('g.dest').each(function (d) {
-      const r = Math.min(3 + Math.log1p((d?.packets || 0) * 0.4), 9)
+      const r  = Math.min(3 + Math.log1p((d?.packets || 0) * 0.4), 9)
       const vr = r / k
       d3.select(this).select('.dot').attr('r', vr).attr('stroke-width', 1 / k)
       d3.select(this).select('.dot-label')
-        .attr('display', k < 2 ? 'none' : null)
-        .attr('font-size', Math.max(9 / k, 6))
-        .attr('y', vr + 11 / k)
+        .attr('font-size', Math.max(9 / k, 5))
+        .attr('y', vr + 10 / k)
     })
 
-    // User dot
     g.select('.user-dot').attr('r', 7 / k).attr('stroke-width', 1.5 / k)
     g.select('.user-label').attr('font-size', 11 / k).attr('x', function () {
       return +d3.select(this).attr('data-ux') + 10 / k
     })
+
+    // Recompute collision at new zoom level
+    applyLabelCollision(g, k)
   }
 
   function drawBase(topo, pos) {
@@ -124,13 +170,11 @@ export default function MapView({ nodes, onNodeClick }) {
     const g = svg.append('g')
     gRef.current = g
 
-    // Ocean
     g.append('rect')
       .attr('width', W * 4).attr('height', H * 4)
       .attr('x', -W).attr('y', -H)
       .attr('fill', '#0a1628')
 
-    // Graticule
     g.append('path')
       .attr('class', 'graticule')
       .datum(d3.geoGraticule()())
@@ -139,7 +183,6 @@ export default function MapView({ nodes, onNodeClick }) {
       .attr('stroke', '#1e3a5f')
       .attr('stroke-width', 0.3)
 
-    // Countries
     const countries = topojson.feature(topo, topo.objects.countries)
     g.append('g').attr('class', 'countries')
       .selectAll('path')
@@ -150,7 +193,6 @@ export default function MapView({ nodes, onNodeClick }) {
       .attr('stroke', '#2d4a6e')
       .attr('stroke-width', 0.5)
 
-    // Borders
     g.append('path')
       .attr('class', 'borders')
       .datum(topojson.mesh(topo, topo.objects.countries, (a, b) => a !== b))
@@ -159,11 +201,9 @@ export default function MapView({ nodes, onNodeClick }) {
       .attr('stroke', '#334155')
       .attr('stroke-width', 0.3)
 
-    // Layers
     g.append('g').attr('class', 'arcs')
     g.append('g').attr('class', 'dots')
 
-    // User location
     const up = projection(pos)
     if (up) {
       const [ux, uy] = up
@@ -198,37 +238,32 @@ export default function MapView({ nodes, onNodeClick }) {
   }
 
   function drawConnections(projection) {
-    const g = gRef.current
+    const g       = gRef.current
     if (!g) return
     const geoPath = d3.geoPath().projection(projection)
-    const pos = userPosRef.current || [2.35, 48.85]
-    const k   = kRef.current
+    const pos     = userPosRef.current || [2.35, 48.85]
+    const k       = kRef.current
 
     const geoNodes = Object.values(nodes)
       .filter(n => n.id !== 'local' && n.lat != null && n.lon != null)
 
-    // ── Arcs ────────────────────────────────────────────────────────────────
+    // ── Arcs ──────────────────────────────────────────────────────────────────
     const arcs = g.select('.arcs').selectAll('path.arc-flow')
       .data(geoNodes, d => d.id)
 
-    // Store enter selection — only set animation-duration once so it doesn't flicker on update
     const arcsEnter = arcs.enter().append('path')
       .attr('class', 'arc-flow')
       .attr('fill', 'none')
       .attr('pointer-events', 'none')
       .style('animation-duration', d => animDur(d.id))
 
-    // Merge enter + update, then apply all mutable attributes
     arcsEnter.merge(arcs)
       .attr('d', d => {
         const [jx, jy] = jitter(d.id)
-        return geoPath({
-          type: 'LineString',
-          coordinates: [pos, [d.lon + jx, d.lat + jy]],
-        })
+        return geoPath({ type: 'LineString', coordinates: [pos, [d.lon + jx, d.lat + jy]] })
       })
       .attr('stroke', d => d.color || '#94a3b8')
-      .attr('stroke-opacity', 0.45)
+      .attr('stroke-opacity', 0.4)
       .attr('stroke-width', d => Math.min(0.8 + Math.log1p((d.bytes || 0) / 512), 3.5) / k)
       .each(function () {
         const len = this.getTotalLength() || 500
@@ -239,14 +274,14 @@ export default function MapView({ nodes, onNodeClick }) {
 
     arcs.exit().remove()
 
-    // ── Destination dots ───────────────────────────────────────────────────
+    // ── Destination dots ───────────────────────────────────────────────────────
     const dotGroups = g.select('.dots').selectAll('g.dest')
       .data(geoNodes, d => d.id)
 
     const enter = dotGroups.enter().append('g').attr('class', 'dest')
     enter.append('circle').attr('class', 'pulse').attr('fill', 'none').attr('stroke-opacity', 0)
-    enter.append('circle').attr('class', 'dot').attr('stroke', '#0a1628').attr('cursor', 'pointer')
-    enter.append('text').attr('class', 'dot-label').attr('fill', '#cbd5e1').attr('text-anchor', 'middle')
+    enter.append('circle').attr('class', 'dot').attr('stroke', '#0a1628')
+    enter.append('text').attr('class', 'dot-label').attr('fill', '#cbd5e1').attr('text-anchor', 'middle').attr('pointer-events', 'none')
 
     const all = enter.merge(dotGroups)
 
@@ -260,7 +295,6 @@ export default function MapView({ nodes, onNodeClick }) {
 
       d3.select(this).attr('transform', `translate(${x},${y})`)
 
-      // Pulse
       const pulse = d3.select(this).select('.pulse')
       pulse.attr('r', (r + 3) / k).attr('stroke', d.color || '#94a3b8')
       pulse.selectAll('animate').remove()
@@ -271,23 +305,27 @@ export default function MapView({ nodes, onNodeClick }) {
         .attr('r', vr)
         .attr('fill', d.color || '#94a3b8')
         .attr('stroke-width', 1 / k)
+        .attr('cursor', 'pointer')
 
       d3.select(this).select('.dot-label')
-        .attr('display', k < 2 ? 'none' : null)
-        .attr('font-size', Math.max(9 / k, 6))
-        .attr('y', vr + 11 / k)
+        .attr('display', 'none')  // collision detection decides visibility below
+        .attr('font-size', Math.max(9 / k, 5))
+        .attr('y', vr + 10 / k)
         .text(() => {
           const lbl = d.label || d.ip || ''
           return lbl.length > 18 ? lbl.slice(0, 16) + '…' : lbl
         })
     })
 
-    all.attr('cursor', 'pointer')
+    all
       .on('mouseover', (e, d) => setTooltip({ x: e.clientX, y: e.clientY, node: d }))
       .on('mouseout',  () => setTooltip(null))
       .on('click',     (_, d) => onNodeClick?.(d))
 
     dotGroups.exit().remove()
+
+    // Apply collision-aware label visibility after all nodes are placed
+    applyLabelCollision(g, k)
   }
 
   const geoCount   = Object.values(nodes).filter(n => n.id !== 'local' && n.lat).length
