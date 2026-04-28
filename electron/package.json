@@ -23,9 +23,14 @@
     "files": [
       "main.js",
       "preload.js",
-      "splash.html"
+      "splash.html",
+      "icon.png"
     ],
     "extraResources": [
+      {
+        "from": "icon.png",
+        "to": "icon.png"
+      },
       {
         "from": "../dist/backend/netgraph-backend.exe",
         "to": "netgraph-backend.exe"

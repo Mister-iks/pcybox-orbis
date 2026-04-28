@@ -26,6 +26,10 @@ const frontendDist = isDev
 const BACKEND_URL = 'http://127.0.0.1:8000'
 const BACKEND_PORT = 8000
 
+const iconPath = isDev
+  ? path.join(__dirname, 'icon.png')
+  : path.join(resourcesDir, 'icon.png')
+
 let mainWindow   = null
 let splashWindow = null
 let backendProc  = null
@@ -80,7 +84,8 @@ function createSplash() {
   splashWindow = new BrowserWindow({
     width: 380, height: 310, frame: false,
     resizable: false, alwaysOnTop: true, center: true,
-    transparent: true, webPreferences: { nodeIntegration: false },
+    transparent: true, icon: iconPath,
+    webPreferences: { nodeIntegration: false },
   })
   splashWindow.loadFile(path.join(__dirname, 'splash.html'))
 }
@@ -89,6 +94,7 @@ function createMain() {
   mainWindow = new BrowserWindow({
     width: 1400, height: 860, minWidth: 900, minHeight: 600,
     show: false, title: 'PCYBOX Orbis', backgroundColor: '#000000',
+    icon: iconPath,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true, nodeIntegration: false,
@@ -172,7 +178,7 @@ app.whenReady().then(async () => {
   if (!isNpcapInstalled()) {
     if (fs.existsSync(npcapInstaller)) {
       const choice = dialog.showMessageBoxSync({
-        type: 'question', title: 'PCYBOX Orbis — Npcap requis',
+        type: 'question', title: 'PCYBOX Orbis - Npcap requis',
         message: 'PCYBOX Orbis nécessite Npcap pour capturer le trafic réseau.\nInstaller maintenant ?',
         buttons: ['Installer', 'Quitter'], defaultId: 0,
       })
@@ -198,7 +204,10 @@ app.whenReady().then(async () => {
 })
 
 app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') app.quit()
+  if (process.platform !== 'darwin') {
+    isQuitting = true  // block spurious exit-event dialogs before before-quit fires
+    app.quit()
+  }
 })
 
 app.on('before-quit', () => {

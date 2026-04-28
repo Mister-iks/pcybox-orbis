@@ -12,13 +12,24 @@ const STYLE = `
   .arc-flow { animation: arcFlow linear infinite; }
 `
 
-// Deterministic per-node offset so same-city nodes don't fully overlap
-function jitter(id) {
+// Deterministic hash for a node id (0..65535)
+function hashId(id) {
   let h = 0
   for (const c of String(id)) h = (h * 31 + c.charCodeAt(0)) & 0xffff
+  return h
+}
+
+// Deterministic per-node offset so same-city nodes don't fully overlap
+function jitter(id) {
+  const h = hashId(id)
   const angle = (h / 0x8000) * Math.PI * 2
   const r = 0.3 + (h & 0xff) / 255 * 1.2
   return [Math.cos(angle) * r, Math.sin(angle) * r]
+}
+
+// Deterministic animation duration so it doesn't reset on every data update
+function animDur(id) {
+  return (1.8 + (hashId(id) / 0xffff) * 2).toFixed(2) + 's'
 }
 
 export default function MapView({ nodes, onNodeClick }) {
@@ -73,8 +84,9 @@ export default function MapView({ nodes, onNodeClick }) {
       const vr = r / k
       d3.select(this).select('.dot').attr('r', vr).attr('stroke-width', 1 / k)
       d3.select(this).select('.dot-label')
-        .attr('font-size', Math.max(9 / k, 7))
-        .attr('y', vr + 12 / k)
+        .attr('display', k < 2 ? 'none' : null)
+        .attr('font-size', Math.max(9 / k, 6))
+        .attr('y', vr + 11 / k)
     })
 
     // User dot
@@ -199,9 +211,16 @@ export default function MapView({ nodes, onNodeClick }) {
     const arcs = g.select('.arcs').selectAll('path.arc-flow')
       .data(geoNodes, d => d.id)
 
+    // Only set animation-duration on enter so it doesn't reset every update
     arcs.enter().append('path')
       .attr('class', 'arc-flow')
-      .merge(arcs)
+      .attr('pointer-events', 'none')
+      .style('animation-duration', d => animDur(d.id))
+      .each(function () {
+        // dasharray computed once on creation; updated in merge below
+      })
+
+    const arcsAll = arcs.enter().merge(arcs)
       .attr('d', d => {
         const [jx, jy] = jitter(d.id)
         return geoPath({
@@ -211,17 +230,15 @@ export default function MapView({ nodes, onNodeClick }) {
       })
       .attr('fill', 'none')
       .attr('stroke', d => d.color || '#94a3b8')
-      .attr('stroke-opacity', 0.5)
+      .attr('stroke-opacity', 0.45)
       .attr('stroke-width', d => Math.min(0.8 + Math.log1p((d.bytes || 0) / 512), 3.5) / k)
-      .style('animation-duration', d => `${1.8 + Math.random() * 2}s`)
-      .each(function () {
-        const len = this.getTotalLength() || 500
-        d3.select(this)
-          .attr('stroke-dasharray', `${len * 0.1} ${len * 0.9}`)
-          .attr('pathLength', 1)
-      })
-      .attr('cursor', 'pointer')
-      .on('click', (_, d) => onNodeClick?.(d))
+
+    arcsAll.each(function () {
+      const len = this.getTotalLength() || 500
+      d3.select(this)
+        .attr('stroke-dasharray', `${len * 0.1} ${len * 0.9}`)
+        .attr('pathLength', 1)
+    })
 
     arcs.exit().remove()
 
@@ -259,15 +276,16 @@ export default function MapView({ nodes, onNodeClick }) {
         .attr('stroke-width', 1 / k)
 
       d3.select(this).select('.dot-label')
-        .attr('font-size', Math.max(9 / k, 7))
-        .attr('y', vr + 12 / k)
+        .attr('display', k < 2 ? 'none' : null)
+        .attr('font-size', Math.max(9 / k, 6))
+        .attr('y', vr + 11 / k)
         .text(() => {
           const lbl = d.label || d.ip || ''
-          return lbl.length > 22 ? lbl.slice(0, 20) + '…' : lbl
+          return lbl.length > 18 ? lbl.slice(0, 16) + '…' : lbl
         })
     })
 
-    all
+    all.attr('cursor', 'pointer')
       .on('mouseover', (e, d) => setTooltip({ x: e.clientX, y: e.clientY, node: d }))
       .on('mouseout',  () => setTooltip(null))
       .on('click',     (_, d) => onNodeClick?.(d))
