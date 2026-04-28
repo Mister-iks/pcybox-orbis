@@ -74,7 +74,8 @@ function isNpcapInstalled() {
 function installNpcap() {
   if (!fs.existsSync(npcapInstaller)) return false
   try {
-    execSync(`"${npcapInstaller}" /S /winpcap_mode=no`, { stdio: 'pipe' })
+    // Silent mode (/S) requires Npcap OEM (paid). Run the standard GUI installer.
+    execSync(`"${npcapInstaller}"`, { stdio: 'inherit' })
     return true
   } catch { return false }
 }
