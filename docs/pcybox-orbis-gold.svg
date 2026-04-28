@@ -1,0 +1,82 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 520" width="480" height="520">
+  <defs>
+    <style>@import url('https://fonts.googleapis.com/css2?family=Syne:wght@800&amp;family=Space+Mono&amp;family=Outfit:wght@300&amp;display=swap');</style>
+    <filter id="glow-sm" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="2.5" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="glow-md" x="-80%" y="-80%" width="260%" height="260%">
+      <feGaussianBlur stdDeviation="6" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <radialGradient id="bg-glow" cx="50%" cy="42%" r="45%">
+      <stop offset="0%" stop-color="#f7b016" stop-opacity="0.12"/>
+      <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="center-node" cx="35%" cy="35%" r="65%">
+      <stop offset="0%" stop-color="#fde68a"/>
+      <stop offset="100%" stop-color="#f7b016"/>
+    </radialGradient>
+    <linearGradient id="orbis-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="50%" stop-color="#f7b016"/>
+      <stop offset="100%" stop-color="#d97706"/>
+    </linearGradient>
+    <linearGradient id="ring-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#f7b016" stop-opacity="1"/>
+      <stop offset="100%" stop-color="#d97706" stop-opacity="0.5"/>
+    </linearGradient>
+    <clipPath id="sphere-clip"><circle cx="240" cy="210" r="118"/></clipPath>
+  </defs>
+
+  <rect width="480" height="520" fill="#000000"/>
+  <circle cx="240" cy="210" r="160" fill="url(#bg-glow)"/>
+
+  <g clip-path="url(#sphere-clip)" opacity="0.2">
+    <ellipse cx="240" cy="210" rx="118" ry="32" fill="none" stroke="#f7b016" stroke-width="0.8"/>
+    <ellipse cx="240" cy="210" rx="118" ry="75" fill="none" stroke="#f7b016" stroke-width="0.8"/>
+    <ellipse cx="240" cy="210" rx="118" ry="108" fill="none" stroke="#f7b016" stroke-width="0.8"/>
+    <ellipse cx="240" cy="210" rx="35" ry="118" fill="none" stroke="#f7b016" stroke-width="0.8"/>
+    <ellipse cx="240" cy="210" rx="80" ry="118" fill="none" stroke="#f7b016" stroke-width="0.8"/>
+  </g>
+  <circle cx="240" cy="210" r="118" fill="none" stroke="url(#ring-grad)" stroke-width="2" filter="url(#glow-sm)"/>
+
+  <line x1="155" y1="110" x2="332" y2="118" stroke="#f7b016" stroke-width="0.9" opacity="0.3"/>
+  <line x1="332" y1="118" x2="355" y2="230" stroke="#f7b016" stroke-width="0.9" opacity="0.3"/>
+  <line x1="355" y1="230" x2="308" y2="300" stroke="#f7b016" stroke-width="0.9" opacity="0.3"/>
+  <line x1="308" y1="300" x2="158" y2="298" stroke="#f7b016" stroke-width="0.9" opacity="0.3"/>
+  <line x1="158" y1="298" x2="124" y2="175" stroke="#f7b016" stroke-width="0.9" opacity="0.3"/>
+  <line x1="124" y1="175" x2="155" y2="110" stroke="#f7b016" stroke-width="0.9" opacity="0.3"/>
+  <line x1="155" y1="110" x2="240" y2="210" stroke="#f7b016" stroke-width="0.7" opacity="0.2"/>
+  <line x1="332" y1="118" x2="240" y2="210" stroke="#f7b016" stroke-width="0.7" opacity="0.2"/>
+  <line x1="355" y1="230" x2="240" y2="210" stroke="#f7b016" stroke-width="0.7" opacity="0.2"/>
+  <line x1="308" y1="300" x2="240" y2="210" stroke="#f7b016" stroke-width="0.7" opacity="0.2"/>
+  <line x1="124" y1="175" x2="240" y2="210" stroke="#f7b016" stroke-width="0.7" opacity="0.2"/>
+
+  <circle cx="155" cy="110" r="6.5" fill="#111" stroke="#f7b016" stroke-width="1.5" filter="url(#glow-sm)"/>
+  <circle cx="155" cy="110" r="3" fill="#f7b016"/>
+  <circle cx="332" cy="118" r="5.5" fill="#111" stroke="#f7b016" stroke-width="1.5" filter="url(#glow-sm)"/>
+  <circle cx="332" cy="118" r="2.5" fill="#f7b016"/>
+  <circle cx="355" cy="230" r="6" fill="#111" stroke="#f7b016" stroke-width="1.5" filter="url(#glow-sm)"/>
+  <circle cx="355" cy="230" r="3" fill="#f7b016"/>
+  <circle cx="308" cy="300" r="5" fill="#111" stroke="#f7b016" stroke-width="1.5" filter="url(#glow-sm)"/>
+  <circle cx="308" cy="300" r="2.5" fill="#f7b016"/>
+  <circle cx="158" cy="298" r="4.5" fill="#111" stroke="#f7b016" stroke-width="1.5" filter="url(#glow-sm)"/>
+  <circle cx="158" cy="298" r="2" fill="#f7b016"/>
+  <circle cx="124" cy="175" r="6" fill="#111" stroke="#f7b016" stroke-width="1.5" filter="url(#glow-sm)"/>
+  <circle cx="124" cy="175" r="3" fill="#f7b016"/>
+
+  <circle cx="240" cy="210" r="22" fill="#f7b016" fill-opacity="0.06"/>
+  <circle cx="240" cy="210" r="14" fill="#f7b016" fill-opacity="0.15" filter="url(#glow-md)"/>
+  <circle cx="240" cy="210" r="7" fill="url(#center-node)" filter="url(#glow-md)"/>
+  <circle cx="240" cy="210" r="3" fill="#ffffff"/>
+
+  <text x="240" y="374" text-anchor="middle" fill="#ffffff" fill-opacity="0.45"
+        font-family="'Space Mono', monospace" font-size="10" letter-spacing="8">PCYBOX</text>
+  <text x="240" y="434" text-anchor="middle" fill="url(#orbis-grad)"
+        font-family="'Syne', sans-serif" font-size="60" font-weight="800" letter-spacing="10"
+        filter="url(#glow-sm)">ORBIS</text>
+  <line x1="148" y1="447" x2="332" y2="447" stroke="#f7b016" stroke-width="0.8" opacity="0.4"/>
+  <text x="240" y="470" text-anchor="middle" fill="#f7b016" fill-opacity="0.6"
+        font-family="'Outfit', sans-serif" font-size="12" letter-spacing="3" font-weight="300">Map the invisible.</text>
+</svg>

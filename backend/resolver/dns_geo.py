@@ -66,7 +66,7 @@ def resolve_geo_ipapi(ip: str) -> dict:
         return {}
     try:
         url = f"http://ip-api.com/json/{ip}?fields=status,country,countryCode,city,lat,lon,org"
-        req = urllib.request.Request(url, headers={"User-Agent": "netgraph/1.0"})
+        req = urllib.request.Request(url, headers={"User-Agent": "pcybox-orbis/1.0"})
         with urllib.request.urlopen(req, timeout=4) as resp:
             data = json.loads(resp.read())
         if data.get("status") == "success":

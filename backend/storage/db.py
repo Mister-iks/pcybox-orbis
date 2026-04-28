@@ -11,7 +11,7 @@ def _get_db_path() -> Path:
     if getattr(sys, 'frozen', False):
         # PyInstaller bundle: write to %LOCALAPPDATA%\NetGraph\ (always writable)
         appdata = Path(os.environ.get('LOCALAPPDATA', Path.home()))
-        db_dir = appdata / 'NetGraph'
+        db_dir = appdata / 'PCYBOXOrbis'
     else:
         db_dir = Path(__file__).parent.parent.parent / 'data'
     db_dir.mkdir(parents=True, exist_ok=True)

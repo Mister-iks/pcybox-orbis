@@ -1,5 +1,5 @@
 {
-  "name": "netgraph",
+  "name": "pcybox-orbis",
   "version": "1.0.0",
   "description": "Real-time network traffic visualizer",
   "main": "main.js",
@@ -15,8 +15,8 @@
     "electron-builder": "^25.1.8"
   },
   "build": {
-    "appId": "com.netgraph.app",
-    "productName": "NetGraph",
+    "appId": "com.pcybox.orbis",
+    "productName": "PCYBOX Orbis",
     "directories": {
       "output": "../dist/installer"
     },
@@ -48,7 +48,7 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "NetGraph"
+      "shortcutName": "PCYBOX Orbis"
     }
   }
 }

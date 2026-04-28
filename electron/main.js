@@ -78,7 +78,7 @@ function installNpcap() {
 // ── Windows ────────────────────────────────────────────────────────────────────
 function createSplash() {
   splashWindow = new BrowserWindow({
-    width: 420, height: 240, frame: false,
+    width: 380, height: 310, frame: false,
     resizable: false, alwaysOnTop: true, center: true,
     transparent: true, webPreferences: { nodeIntegration: false },
   })
@@ -88,7 +88,7 @@ function createSplash() {
 function createMain() {
   mainWindow = new BrowserWindow({
     width: 1400, height: 860, minWidth: 900, minHeight: 600,
-    show: false, title: 'NetGraph', backgroundColor: '#0f172a',
+    show: false, title: 'PCYBOX Orbis', backgroundColor: '#000000',
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true, nodeIntegration: false,
@@ -142,7 +142,7 @@ function killBackend() {
 
 function launchBackend() {
   if (!fs.existsSync(backendExe)) {
-    dialog.showErrorBox('NetGraph', `Backend introuvable :\n${backendExe}`)
+    dialog.showErrorBox('PCYBOX Orbis', `Backend introuvable :\n${backendExe}`)
     app.quit(); return
   }
 
@@ -155,13 +155,13 @@ function launchBackend() {
   backendProc = spawn(backendExe, [], { detached: false, stdio: 'ignore', env })
   backendProc.on('error', err => {
     if (isQuitting) return
-    dialog.showErrorBox('NetGraph', `Impossible de démarrer le backend :\n${err.message}`)
+    dialog.showErrorBox('PCYBOX Orbis', `Impossible de démarrer le backend :\n${err.message}`)
     app.quit()
   })
   backendProc.on('exit', (code) => {
     if (isQuitting) return      // normal shutdown — don't alert
     if (mainWindow) {
-      dialog.showErrorBox('NetGraph', `Backend arrêté (code ${code}).`)
+      dialog.showErrorBox('PCYBOX Orbis', `Backend arrêté (code ${code}).`)
       app.quit()
     }
   })
@@ -172,13 +172,13 @@ app.whenReady().then(async () => {
   if (!isNpcapInstalled()) {
     if (fs.existsSync(npcapInstaller)) {
       const choice = dialog.showMessageBoxSync({
-        type: 'question', title: 'NetGraph — Npcap requis',
-        message: 'NetGraph nécessite Npcap pour capturer le trafic réseau.\nInstaller maintenant ?',
+        type: 'question', title: 'PCYBOX Orbis — Npcap requis',
+        message: 'PCYBOX Orbis nécessite Npcap pour capturer le trafic réseau.\nInstaller maintenant ?',
         buttons: ['Installer', 'Quitter'], defaultId: 0,
       })
       if (choice === 1) { app.quit(); return }
       if (!installNpcap()) {
-        dialog.showErrorBox('NetGraph', 'Installation Npcap échouée. Installe-le manuellement depuis https://npcap.com')
+        dialog.showErrorBox('PCYBOX Orbis', 'Installation Npcap échouée. Installe-le manuellement depuis https://npcap.com')
         app.quit(); return
       }
     }
@@ -190,7 +190,7 @@ app.whenReady().then(async () => {
   try {
     await waitForBackend()
   } catch (e) {
-    dialog.showErrorBox('NetGraph', `Backend non disponible :\n${e.message}`)
+    dialog.showErrorBox('PCYBOX Orbis', `Backend non disponible :\n${e.message}`)
     app.quit(); return
   }
 

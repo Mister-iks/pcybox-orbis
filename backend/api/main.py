@@ -14,7 +14,7 @@ from scanner.arp_scanner import ARPScanner, Device
 from detection.anomaly import AnomalyDetector
 import storage.db as db
 
-app = FastAPI(title="NetGraph API")
+app = FastAPI(title="PCYBOX Orbis API")
 
 app.add_middleware(
     CORSMiddleware,

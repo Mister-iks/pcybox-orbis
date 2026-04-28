@@ -5,11 +5,9 @@
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
-      background: #0f172a;
-      border-radius: 12px;
-      border: 1px solid #1e3a5f;
-      color: #f1f5f9;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #000000;
+      border-radius: 14px;
+      border: 1px solid #111;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -19,31 +17,28 @@
       user-select: none;
     }
 
-    .logo {
-      width: 56px; height: 56px;
-      background: linear-gradient(135deg, #3b82f6, #6366f1);
-      border-radius: 16px;
-      display: flex; align-items: center; justify-content: center;
-      margin-bottom: 20px;
-      box-shadow: 0 0 32px rgba(59,130,246,0.4);
+    .logo-wrap {
+      width: 210px;
     }
-    .logo svg { width: 32px; height: 32px; }
-
-    h1 { font-size: 26px; font-weight: 700; letter-spacing: -0.5px; margin-bottom: 6px; }
-    .sub { font-size: 13px; color: #64748b; margin-bottom: 36px; }
+    .logo-wrap svg {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
 
     .bar-wrap {
-      width: 200px; height: 4px;
-      background: #1e293b;
-      border-radius: 2px;
+      width: 150px;
+      height: 2px;
+      background: #111;
+      border-radius: 1px;
       overflow: hidden;
-      margin-bottom: 14px;
+      margin-top: 8px;
     }
     .bar {
       height: 100%;
       width: 0%;
-      background: linear-gradient(to right, #3b82f6, #6366f1);
-      border-radius: 2px;
+      background: #f7b016;
+      border-radius: 1px;
       animation: fill 4s ease-out forwards;
     }
     @keyframes fill {
@@ -52,21 +47,88 @@
       85%  { width: 88% }
       100% { width: 95% }
     }
-
-    .status { font-size: 11px; color: #475569; }
   </style>
 </head>
 <body>
-  <div class="logo">
-    <svg viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round">
-      <path d="M12 2L2 7l10 5 10-5-10-5z"/>
-      <path d="M2 17l10 5 10-5"/>
-      <path d="M2 12l10 5 10-5"/>
+  <div class="logo-wrap">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 520">
+      <defs>
+        <style>@import url('https://fonts.googleapis.com/css2?family=Syne:wght@800&family=Space+Mono&family=Outfit:wght@300&display=swap');</style>
+        <filter id="glow-sm" x="-50%" y="-50%" width="200%" height="200%">
+          <feGaussianBlur stdDeviation="2.5" result="blur"/>
+          <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+        <filter id="glow-md" x="-80%" y="-80%" width="260%" height="260%">
+          <feGaussianBlur stdDeviation="5" result="blur"/>
+          <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+        <radialGradient id="bg-glow" cx="50%" cy="42%" r="45%">
+          <stop offset="0%" stop-color="#ffffff" stop-opacity="0.06"/>
+          <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
+        </radialGradient>
+        <radialGradient id="center-node" cx="35%" cy="35%" r="65%">
+          <stop offset="0%" stop-color="#fde68a"/>
+          <stop offset="100%" stop-color="#f7b016"/>
+        </radialGradient>
+        <linearGradient id="ring-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stop-color="#ffffff" stop-opacity="0.9"/>
+          <stop offset="100%" stop-color="#ffffff" stop-opacity="0.3"/>
+        </linearGradient>
+        <clipPath id="sphere-clip"><circle cx="240" cy="210" r="118"/></clipPath>
+      </defs>
+
+      <rect width="480" height="520" fill="#000000"/>
+      <circle cx="240" cy="210" r="160" fill="url(#bg-glow)"/>
+
+      <g clip-path="url(#sphere-clip)" opacity="0.15">
+        <ellipse cx="240" cy="210" rx="118" ry="32" fill="none" stroke="#ffffff" stroke-width="0.8"/>
+        <ellipse cx="240" cy="210" rx="118" ry="75" fill="none" stroke="#ffffff" stroke-width="0.8"/>
+        <ellipse cx="240" cy="210" rx="118" ry="108" fill="none" stroke="#ffffff" stroke-width="0.8"/>
+        <ellipse cx="240" cy="210" rx="35" ry="118" fill="none" stroke="#ffffff" stroke-width="0.8"/>
+        <ellipse cx="240" cy="210" rx="80" ry="118" fill="none" stroke="#ffffff" stroke-width="0.8"/>
+      </g>
+      <circle cx="240" cy="210" r="118" fill="none" stroke="url(#ring-grad)" stroke-width="1.8" filter="url(#glow-sm)"/>
+
+      <line x1="155" y1="110" x2="332" y2="118" stroke="#ffffff" stroke-width="0.9" opacity="0.25"/>
+      <line x1="332" y1="118" x2="355" y2="230" stroke="#ffffff" stroke-width="0.9" opacity="0.25"/>
+      <line x1="355" y1="230" x2="308" y2="300" stroke="#ffffff" stroke-width="0.9" opacity="0.25"/>
+      <line x1="308" y1="300" x2="158" y2="298" stroke="#ffffff" stroke-width="0.9" opacity="0.25"/>
+      <line x1="158" y1="298" x2="124" y2="175" stroke="#ffffff" stroke-width="0.9" opacity="0.25"/>
+      <line x1="124" y1="175" x2="155" y2="110" stroke="#ffffff" stroke-width="0.9" opacity="0.25"/>
+      <line x1="155" y1="110" x2="240" y2="210" stroke="#ffffff" stroke-width="0.7" opacity="0.15"/>
+      <line x1="332" y1="118" x2="240" y2="210" stroke="#ffffff" stroke-width="0.7" opacity="0.15"/>
+      <line x1="355" y1="230" x2="240" y2="210" stroke="#ffffff" stroke-width="0.7" opacity="0.15"/>
+      <line x1="308" y1="300" x2="240" y2="210" stroke="#ffffff" stroke-width="0.7" opacity="0.15"/>
+      <line x1="124" y1="175" x2="240" y2="210" stroke="#ffffff" stroke-width="0.7" opacity="0.15"/>
+
+      <circle cx="155" cy="110" r="6.5" fill="#111" stroke="#ffffff" stroke-width="1.5" filter="url(#glow-sm)"/>
+      <circle cx="155" cy="110" r="3" fill="#f7b016"/>
+      <circle cx="332" cy="118" r="5.5" fill="#111" stroke="#ffffff" stroke-width="1.5" filter="url(#glow-sm)"/>
+      <circle cx="332" cy="118" r="2.5" fill="#f7b016"/>
+      <circle cx="355" cy="230" r="6" fill="#111" stroke="#ffffff" stroke-width="1.5" filter="url(#glow-sm)"/>
+      <circle cx="355" cy="230" r="3" fill="#f7b016"/>
+      <circle cx="308" cy="300" r="5" fill="#111" stroke="#ffffff" stroke-width="1.5" filter="url(#glow-sm)"/>
+      <circle cx="308" cy="300" r="2.5" fill="#f7b016"/>
+      <circle cx="158" cy="298" r="4.5" fill="#111" stroke="#ffffff" stroke-width="1.5" filter="url(#glow-sm)"/>
+      <circle cx="158" cy="298" r="2" fill="#f7b016"/>
+      <circle cx="124" cy="175" r="6" fill="#111" stroke="#ffffff" stroke-width="1.5" filter="url(#glow-sm)"/>
+      <circle cx="124" cy="175" r="3" fill="#f7b016"/>
+
+      <circle cx="240" cy="210" r="22" fill="#f7b016" fill-opacity="0.08"/>
+      <circle cx="240" cy="210" r="14" fill="#f7b016" fill-opacity="0.2" filter="url(#glow-md)"/>
+      <circle cx="240" cy="210" r="7" fill="url(#center-node)" filter="url(#glow-md)"/>
+      <circle cx="240" cy="210" r="3" fill="#ffffff"/>
+
+      <text x="240" y="374" text-anchor="middle" fill="#f7b016"
+            font-family="'Space Mono', monospace" font-size="10" letter-spacing="8">PCYBOX</text>
+      <text x="240" y="434" text-anchor="middle" fill="#ffffff"
+            font-family="'Syne', sans-serif" font-size="60" font-weight="800" letter-spacing="10"
+            filter="url(#glow-sm)">ORBIS</text>
+      <line x1="148" y1="447" x2="332" y2="447" stroke="#f7b016" stroke-width="0.8" opacity="0.5"/>
+      <text x="240" y="470" text-anchor="middle" fill="#ffffff" fill-opacity="0.4"
+            font-family="'Outfit', sans-serif" font-size="12" letter-spacing="3" font-weight="300">Map the invisible.</text>
     </svg>
   </div>
-  <h1>NetGraph</h1>
-  <p class="sub">Live Network Monitor</p>
   <div class="bar-wrap"><div class="bar"></div></div>
-  <p class="status">Démarrage du moteur de capture…</p>
 </body>
 </html>

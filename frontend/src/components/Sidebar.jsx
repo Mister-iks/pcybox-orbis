@@ -52,9 +52,12 @@ export default function Sidebar({ nodes, lanDevices, packets, selected, onClose,
     }}>
       {/* Header */}
       <div style={{ padding: '14px 20px 8px', borderBottom: '1px solid #334155' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 2 }}>
-          <h1 style={{ fontSize: 17, fontWeight: 700, color: '#f1f5f9' }}>NetGraph</h1>
-          <span style={{ fontSize: 10, color: '#64748b' }}>Live Network Monitor</span>
+        <div style={{ marginBottom: 6 }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 7, marginBottom: 2 }}>
+            <span style={{ fontSize: 9, fontFamily: 'monospace', color: '#f7b016', letterSpacing: 3, fontWeight: 600 }}>PCYBOX</span>
+            <span style={{ fontSize: 17, fontWeight: 800, color: '#f1f5f9', letterSpacing: 1 }}>ORBIS</span>
+          </div>
+          <span style={{ fontSize: 10, color: '#475569', letterSpacing: 1 }}>Map the invisible.</span>
         </div>
         <BandwidthChart data={bandwidth || []} />
       </div>
