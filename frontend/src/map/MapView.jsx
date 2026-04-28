@@ -211,16 +211,15 @@ export default function MapView({ nodes, onNodeClick }) {
     const arcs = g.select('.arcs').selectAll('path.arc-flow')
       .data(geoNodes, d => d.id)
 
-    // Only set animation-duration on enter so it doesn't reset every update
-    arcs.enter().append('path')
+    // Store enter selection — only set animation-duration once so it doesn't flicker on update
+    const arcsEnter = arcs.enter().append('path')
       .attr('class', 'arc-flow')
+      .attr('fill', 'none')
       .attr('pointer-events', 'none')
       .style('animation-duration', d => animDur(d.id))
-      .each(function () {
-        // dasharray computed once on creation; updated in merge below
-      })
 
-    const arcsAll = arcs.enter().merge(arcs)
+    // Merge enter + update, then apply all mutable attributes
+    arcsEnter.merge(arcs)
       .attr('d', d => {
         const [jx, jy] = jitter(d.id)
         return geoPath({
@@ -228,17 +227,15 @@ export default function MapView({ nodes, onNodeClick }) {
           coordinates: [pos, [d.lon + jx, d.lat + jy]],
         })
       })
-      .attr('fill', 'none')
       .attr('stroke', d => d.color || '#94a3b8')
       .attr('stroke-opacity', 0.45)
       .attr('stroke-width', d => Math.min(0.8 + Math.log1p((d.bytes || 0) / 512), 3.5) / k)
-
-    arcsAll.each(function () {
-      const len = this.getTotalLength() || 500
-      d3.select(this)
-        .attr('stroke-dasharray', `${len * 0.1} ${len * 0.9}`)
-        .attr('pathLength', 1)
-    })
+      .each(function () {
+        const len = this.getTotalLength() || 500
+        d3.select(this)
+          .attr('stroke-dasharray', `${len * 0.1} ${len * 0.9}`)
+          .attr('pathLength', 1)
+      })
 
     arcs.exit().remove()
 
