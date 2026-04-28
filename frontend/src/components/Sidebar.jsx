@@ -172,7 +172,7 @@ function NodeRow({ node }) {
         <div style={{ fontSize: 11, color: '#e2e8f0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {node.label || node.ip}
         </div>
-        <div style={{ fontSize: 9, color: '#64748b' }}>{node.country || '—'} · {node.packets || 0} pkt</div>
+        <div style={{ fontSize: 9, color: '#64748b' }}>{node.country || '-'} · {node.packets || 0} pkt</div>
       </div>
       <div style={{ fontSize: 10, color: '#94a3b8', flexShrink: 0 }}>{fmt(node.bytes || 0)}</div>
     </div>

@@ -1,61 +1,124 @@
-# NetGraph - Live Network Traffic Visualizer
+<div align="center">
 
-Real-time, interactive graph that shows every network exchange between your device and external/internal IPs - colored by category, enriched with geolocation and DNS, with per-app attribution.
+<img src="docs/pcybox-orbis-white.svg" width="180" alt="PCYBOX Orbis logo"/>
+
+# PCYBOX Orbis
+
+**Map the invisible.**
+
+Real-time network traffic visualizer for Windows.
+See every connection your computer makes - who it talks to, where they are, and which app is responsible.
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Platform: Windows](https://img.shields.io/badge/Platform-Windows%2010%2F11-blue.svg)]()
+[![Version](https://img.shields.io/badge/Version-1.0.0-green.svg)]()
+
+[Website](https://orbis.pcybox.com) - [Download](https://github.com/Mister-iks/pcybox-orbis/releases/latest) - [Report a bug](https://github.com/Mister-iks/pcybox-orbis/issues)
+
+</div>
+
+---
+
+## Features
+
+| Feature | Description |
+|---|---|
+| Force Graph | Live node graph - your machine at the center, every connection as a node |
+| World Map | Geolocated IPs with animated arcs on an interactive globe |
+| 60-min Timeline | Sliding history stored locally in SQLite |
+| Anomaly Detection | Flags port scans, beaconing, potential exfiltration |
+| Process Attribution | Know which app generates which traffic (top 5 per connection) |
+| LAN Scanner | ARP discovery of all devices on your local network |
+| Privacy Score | Real-time score of your outgoing traffic exposure |
+| Bandwidth Monitor | Live MB/s sparkline |
+
+## Download
+
+**[PCYBOX Orbis Setup 1.0.0.exe](https://github.com/Mister-iks/pcybox-orbis/releases/latest)** - Windows 10/11 64-bit - ~101 MB
+
+Requires administrator rights for network capture. Npcap is installed automatically on first launch.
 
 ## Stack
 
-| Layer | Tech |
+| Layer | Technology |
 |---|---|
-| Packet capture | Python · Scapy |
-| Backend API | FastAPI · WebSockets |
-| Traffic classification | Custom classifier (ports, hostnames, trackers) |
+| Packet capture | Python - Scapy - Npcap 1.79 |
+| Backend API | FastAPI - WebSockets - SQLite |
+| Frontend | React 18 - Vite - D3.js v7 - TopoJSON |
+| Desktop wrapper | Electron 28 |
 | Geolocation | MaxMind GeoLite2 |
-| Frontend | React 18 · Vite · D3.js v7 |
 
-## Features (v0.1)
-
-- Force-directed live graph - nodes = hosts, edges = connections
-- Color-coded by traffic type: HTTPS, DNS, Tracking, CDN, SSH…
-- Per-process attribution (which app is talking to which host)
-- Sidebar with host details: country, org, bytes, packets
-- Live packet feed
-- Click a node to inspect it
-
-## Quick Start
+## Development
 
 ### Requirements
 
 - Python 3.11+
-- Node 18+
-- [Npcap](https://npcap.com/) (Windows) or libpcap (Linux/macOS) - for packet capture
-- (Optional) [MaxMind GeoLite2 City DB](https://dev.maxmind.com/geoip/geolite2-free-geolocation-data) → place as `data/GeoLite2-City.mmdb`
+- Node.js 18+
+- [Npcap](https://npcap.com/) installed
+- Administrator terminal for backend (packet capture)
 
-### Backend
+### Run locally
 
 ```bash
+# Backend (admin terminal)
 cd backend
-python -m venv .venv
-.venv\Scripts\activate      # Windows
 pip install -r requirements.txt
-# Must run as Administrator for packet capture
-uvicorn api.main:app --reload --port 8000
-```
+python run_backend.py
+# API available at http://127.0.0.1:8000
 
-### Frontend
-
-```bash
+# Frontend (separate terminal)
 cd frontend
 npm install
 npm run dev
+# UI at http://localhost:5173
+
+# Electron (optional, admin terminal)
+cd electron
+npm install
+set VITE_DEV=1
+npx electron .
 ```
 
-Open [http://localhost:5173](http://localhost:5173)
+### Build installer
 
-## Roadmap
+```bash
+# 1 - Compile backend (PyInstaller)
+cd backend
+pip install pyinstaller
+pyinstaller backend.spec --distpath ../dist/backend
 
-- [ ] Multi-device support (full LAN scan via ARP)
-- [ ] Geographic map view (Leaflet)
-- [ ] Timeline / replay mode
-- [ ] Anomaly detection (ML)
-- [ ] Privacy score per device
-- [ ] Alerts & notifications
+# 2 - Build frontend
+cd frontend
+npm run build
+
+# 3 - Build Electron installer
+cd electron
+npm run build:dir
+# Then repack app.asar and run:
+# npx electron-builder --win nsis --prepackaged ../dist/installer/win-unpacked
+```
+
+See [INSTALL.md](NetGraph-v1.0.0-stable-2026-04-28/INSTALL.md) for the full build and packaging guide.
+
+## Project structure
+
+```
+pcybox-orbis/
+- backend/       Python FastAPI + Scapy capture engine
+- frontend/      React + D3.js UI
+- electron/      Electron wrapper (main.js, splash, preload)
+- website/       Official landing page (orbis.pcybox.com)
+- docs/          SVG logo variants
+- resources/     Npcap installer bundle
+- dist/          Compiled output (backend exe, installer)
+```
+
+## License
+
+MIT - see [LICENSE](LICENSE)
+
+---
+
+<div align="center">
+Built by <a href="https://github.com/Mister-iks">Mister-iks</a> - PCYBOX 2026
+</div>
