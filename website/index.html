@@ -1,0 +1,806 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- ── Primary SEO ──────────────────────────────────────────────────────── -->
+  <title>PCYBOX Orbis - Map the invisible. | Real-time Network Visualizer</title>
+  <meta name="description" content="PCYBOX Orbis reveals who your computer is talking to — in real time. Force graph, world map, anomaly detection, process attribution. Free Windows app." />
+  <meta name="keywords" content="network traffic monitor, network visualization, real-time network analysis, network security tool, windows network monitor, IP tracker, network map, pcap, traffic analyzer, network graph" />
+  <meta name="author" content="PCYBOX" />
+  <meta name="robots" content="index, follow" />
+  <link rel="canonical" href="https://pcybox.io/" />
+
+  <!-- ── Open Graph (Facebook, LinkedIn, Discord, WhatsApp…) ─────────────── -->
+  <meta property="og:type"        content="website" />
+  <meta property="og:url"         content="https://pcybox.io/" />
+  <meta property="og:title"       content="PCYBOX Orbis - Map the invisible." />
+  <meta property="og:description" content="Reveal who your computer is talking to — in real time. Force graph, world map, anomaly detection, process attribution. Free for Windows." />
+  <meta property="og:image"       content="https://pcybox.io/og-image.png" />
+  <meta property="og:image:width"  content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:site_name"   content="PCYBOX Orbis" />
+  <meta property="og:locale"      content="en_US" />
+
+  <!-- ── Twitter / X Card ────────────────────────────────────────────────── -->
+  <meta name="twitter:card"        content="summary_large_image" />
+  <meta name="twitter:site"        content="@pcybox" />
+  <meta name="twitter:title"       content="PCYBOX Orbis - Map the invisible." />
+  <meta name="twitter:description" content="Reveal who your computer is talking to in real time. Free Windows network visualizer." />
+  <meta name="twitter:image"       content="https://pcybox.io/og-image.png" />
+
+  <!-- ── JSON-LD Structured Data ─────────────────────────────────────────── -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "PCYBOX Orbis",
+    "operatingSystem": "Windows 10, Windows 11",
+    "applicationCategory": "NetworkApplication",
+    "description": "Real-time network traffic visualizer. Force graph, geographic map, anomaly detection, process attribution and privacy score for Windows.",
+    "url": "https://pcybox.io/",
+    "downloadUrl": "https://github.com/Mister-iks/netgraph/releases",
+    "softwareVersion": "1.0.0",
+    "datePublished": "2026-04-28",
+    "author": {
+      "@type": "Organization",
+      "name": "PCYBOX",
+      "url": "https://pcybox.io/"
+    },
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "USD"
+    },
+    "featureList": [
+      "Real-time force graph",
+      "Geographic world map with animated connections",
+      "60-minute sliding timeline",
+      "Anomaly detection (scans, exfiltration, beaconing)",
+      "Process attribution",
+      "LAN scanner",
+      "Privacy score",
+      "Bandwidth monitor"
+    ]
+  }
+  </script>
+
+  <!-- ── Fonts (same as logo) ─────────────────────────────────────────────── -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Space+Mono:wght@400;700&family=Outfit:wght@300;400;500&display=swap" rel="stylesheet" />
+
+  <!-- ── Favicon ──────────────────────────────────────────────────────────── -->
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --gold:    #f7b016;
+      --gold-dim: #d97706;
+      --black:   #000000;
+      --surface: #0d0d0d;
+      --card:    #111111;
+      --border:  #1f1f1f;
+      --muted:   #94a3b8;
+      --text:    #f1f5f9;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--black);
+      color: var(--text);
+      font-family: 'Outfit', system-ui, sans-serif;
+      font-weight: 400;
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    a { color: inherit; text-decoration: none; }
+
+    /* ── Nav ─────────────────────────────────────────────────────────────── */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 48px;
+      height: 64px;
+      background: rgba(0,0,0,0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .nav-logo {
+      display: flex; align-items: center; gap: 12px;
+    }
+    .nav-logo-icon { width: 32px; height: 32px; }
+    .nav-brand {
+      display: flex; flex-direction: column; line-height: 1;
+    }
+    .nav-pcybox {
+      font-family: 'Space Mono', monospace;
+      font-size: 9px; letter-spacing: 3px;
+      color: var(--gold); text-transform: uppercase;
+    }
+    .nav-orbis {
+      font-family: 'Syne', sans-serif;
+      font-size: 18px; font-weight: 800; letter-spacing: 3px;
+    }
+
+    .nav-links {
+      display: flex; align-items: center; gap: 32px;
+      font-size: 13px; color: var(--muted);
+    }
+    .nav-links a:hover { color: var(--text); }
+
+    .btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 10px 22px; border-radius: 8px;
+      font-family: 'Outfit', sans-serif; font-size: 13px; font-weight: 500;
+      cursor: pointer; transition: all 0.2s; border: none;
+      white-space: nowrap;
+    }
+    .btn-gold {
+      background: var(--gold); color: #000;
+    }
+    .btn-gold:hover { background: #ffbe2e; transform: translateY(-1px); }
+    .btn-outline {
+      background: transparent; color: var(--text);
+      border: 1px solid var(--border);
+    }
+    .btn-outline:hover { border-color: var(--muted); background: #111; }
+
+    /* ── Hero ────────────────────────────────────────────────────────────── */
+    .hero {
+      min-height: 100vh;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      text-align: center;
+      padding: 120px 24px 80px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero-glow {
+      position: absolute; top: 30%; left: 50%; transform: translate(-50%, -50%);
+      width: 600px; height: 600px;
+      background: radial-gradient(circle, rgba(247,176,22,0.08) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .hero-logo {
+      width: 160px; height: 173px; margin-bottom: 32px;
+      filter: drop-shadow(0 0 40px rgba(247,176,22,0.25));
+    }
+
+    .hero-pcybox {
+      font-family: 'Space Mono', monospace;
+      font-size: 11px; letter-spacing: 8px;
+      color: var(--gold); text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+
+    h1 {
+      font-family: 'Syne', sans-serif;
+      font-size: clamp(48px, 8vw, 88px);
+      font-weight: 800;
+      letter-spacing: -1px;
+      line-height: 1.05;
+      margin-bottom: 10px;
+    }
+
+    .hero-tagline {
+      font-size: clamp(18px, 3vw, 24px);
+      color: var(--gold);
+      font-weight: 300;
+      letter-spacing: 3px;
+      margin-bottom: 24px;
+    }
+
+    .hero-sub {
+      max-width: 560px;
+      font-size: 16px;
+      color: var(--muted);
+      font-weight: 300;
+      margin-bottom: 44px;
+      line-height: 1.7;
+    }
+
+    .hero-ctas {
+      display: flex; gap: 14px; flex-wrap: wrap; justify-content: center;
+    }
+
+    .btn-lg { padding: 14px 32px; font-size: 15px; border-radius: 10px; }
+
+    .hero-meta {
+      margin-top: 56px;
+      display: flex; gap: 40px; flex-wrap: wrap; justify-content: center;
+    }
+    .hero-meta-item {
+      text-align: center;
+    }
+    .hero-meta-val {
+      font-family: 'Syne', sans-serif;
+      font-size: 28px; font-weight: 800;
+      color: var(--gold);
+    }
+    .hero-meta-label {
+      font-size: 11px; color: var(--muted); letter-spacing: 1px;
+      text-transform: uppercase; margin-top: 2px;
+    }
+
+    /* ── Section shared ──────────────────────────────────────────────────── */
+    section { padding: 100px 24px; }
+    .container { max-width: 1100px; margin: 0 auto; }
+
+    .section-label {
+      font-family: 'Space Mono', monospace;
+      font-size: 10px; letter-spacing: 6px;
+      color: var(--gold); text-transform: uppercase;
+      margin-bottom: 16px;
+    }
+    h2 {
+      font-family: 'Syne', sans-serif;
+      font-size: clamp(32px, 5vw, 52px);
+      font-weight: 800;
+      line-height: 1.1;
+      margin-bottom: 16px;
+    }
+    .section-sub {
+      font-size: 16px; color: var(--muted); font-weight: 300;
+      max-width: 560px; line-height: 1.7;
+    }
+
+    /* ── Features ────────────────────────────────────────────────────────── */
+    .features { background: var(--surface); }
+
+    .features-header { margin-bottom: 64px; }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 2px;
+    }
+
+    .feature-card {
+      background: var(--card);
+      padding: 36px 32px;
+      border: 1px solid var(--border);
+      transition: border-color 0.2s, transform 0.2s;
+    }
+    .feature-card:hover {
+      border-color: rgba(247,176,22,0.3);
+      transform: translateY(-2px);
+    }
+
+    .feature-icon {
+      width: 44px; height: 44px;
+      background: rgba(247,176,22,0.1);
+      border: 1px solid rgba(247,176,22,0.2);
+      border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 20px;
+    }
+    .feature-icon svg { width: 22px; height: 22px; }
+
+    .feature-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 18px; font-weight: 700;
+      margin-bottom: 10px;
+    }
+    .feature-desc {
+      font-size: 14px; color: var(--muted);
+      font-weight: 300; line-height: 1.7;
+    }
+
+    /* ── How it works ────────────────────────────────────────────────────── */
+    .how { background: var(--black); }
+
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 0;
+      margin-top: 64px;
+      position: relative;
+    }
+
+    .step {
+      padding: 40px 36px;
+      border: 1px solid var(--border);
+      position: relative;
+    }
+    .step + .step { border-left: none; }
+
+    .step-num {
+      font-family: 'Space Mono', monospace;
+      font-size: 11px; letter-spacing: 2px;
+      color: var(--gold); margin-bottom: 20px;
+    }
+    .step-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 20px; font-weight: 700; margin-bottom: 12px;
+    }
+    .step-desc { font-size: 14px; color: var(--muted); line-height: 1.7; }
+
+    /* ── Screenshots placeholder ─────────────────────────────────────────── */
+    .demo { background: var(--surface); }
+
+    .demo-screens {
+      margin-top: 56px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2px;
+    }
+
+    .screen-card {
+      background: #0a0a0a;
+      border: 1px solid var(--border);
+      border-radius: 0;
+      aspect-ratio: 16/9;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 12px;
+      color: #1e293b;
+      font-size: 13px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .screen-label {
+      position: absolute; bottom: 16px; left: 20px;
+      font-size: 11px; color: var(--muted);
+      font-family: 'Space Mono', monospace;
+      letter-spacing: 1px;
+    }
+
+    /* ── Download ────────────────────────────────────────────────────────── */
+    .download {
+      background: var(--black);
+      text-align: center;
+    }
+
+    .download-box {
+      max-width: 640px; margin: 0 auto;
+    }
+
+    .download-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: rgba(247,176,22,0.08);
+      border: 1px solid rgba(247,176,22,0.2);
+      border-radius: 100px;
+      padding: 6px 18px;
+      font-family: 'Space Mono', monospace;
+      font-size: 11px; color: var(--gold);
+      letter-spacing: 2px;
+      margin-bottom: 32px;
+    }
+
+    .download-title { margin-bottom: 16px; }
+    .download-sub {
+      font-size: 15px; color: var(--muted); font-weight: 300;
+      margin-bottom: 40px; line-height: 1.7;
+    }
+
+    .download-ctas {
+      display: flex; gap: 14px; justify-content: center; flex-wrap: wrap;
+      margin-bottom: 28px;
+    }
+
+    .download-note {
+      font-size: 12px; color: #475569; line-height: 1.7;
+    }
+    .download-note a { color: var(--muted); text-decoration: underline; }
+
+    /* ── Footer ──────────────────────────────────────────────────────────── */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 40px 48px;
+      display: flex; align-items: center; justify-content: space-between;
+      flex-wrap: wrap; gap: 20px;
+      font-size: 13px; color: var(--muted);
+    }
+
+    .footer-logo {
+      display: flex; align-items: center; gap: 10px;
+    }
+    .footer-logo svg { width: 24px; height: 24px; }
+    .footer-brand {
+      font-family: 'Syne', sans-serif;
+      font-size: 14px; font-weight: 800; letter-spacing: 2px;
+      color: var(--text);
+    }
+
+    .footer-links {
+      display: flex; gap: 28px; flex-wrap: wrap;
+    }
+    .footer-links a:hover { color: var(--text); }
+
+    .footer-copy { color: #334155; }
+
+    /* ── Separator line (gold) ───────────────────────────────────────────── */
+    .gold-line {
+      width: 48px; height: 2px;
+      background: var(--gold);
+      margin-bottom: 24px;
+    }
+
+    /* ── Responsive ──────────────────────────────────────────────────────── */
+    @media (max-width: 768px) {
+      nav { padding: 0 20px; }
+      .nav-links { display: none; }
+      .hero { padding: 100px 20px 60px; }
+      .hero-logo { width: 120px; height: 130px; }
+      .demo-screens { grid-template-columns: 1fr; }
+      .step + .step { border-left: 1px solid var(--border); border-top: none; }
+      .steps { grid-template-columns: 1fr; }
+      footer { padding: 32px 20px; flex-direction: column; align-items: flex-start; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Navigation ──────────────────────────────────────────────────────────── -->
+<nav>
+  <a href="#" class="nav-logo" aria-label="PCYBOX Orbis Home">
+    <!-- Inline logo mark -->
+    <svg class="nav-logo-icon" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <circle cx="32" cy="32" r="32" fill="#000"/>
+      <circle cx="32" cy="32" r="26" stroke="#fff" stroke-width="1.2" opacity=".85"/>
+      <ellipse cx="32" cy="32" rx="26" ry="7.5" stroke="#fff" stroke-width=".8" opacity=".35"/>
+      <ellipse cx="32" cy="32" rx="26" ry="17" stroke="#fff" stroke-width=".8" opacity=".3"/>
+      <ellipse cx="32" cy="32" rx="8.5" ry="26" stroke="#fff" stroke-width=".8" opacity=".35"/>
+      <ellipse cx="32" cy="32" rx="19" ry="26" stroke="#fff" stroke-width=".8" opacity=".3"/>
+      <line x1="19" y1="13" x2="41" y2="14" stroke="#fff" stroke-width=".8" opacity=".5"/>
+      <line x1="41" y1="14" x2="45" y2="32" stroke="#fff" stroke-width=".8" opacity=".5"/>
+      <line x1="45" y1="32" x2="40" y2="43" stroke="#fff" stroke-width=".8" opacity=".5"/>
+      <line x1="40" y1="43" x2="20" y2="43" stroke="#fff" stroke-width=".8" opacity=".5"/>
+      <line x1="20" y1="43" x2="15" y2="26" stroke="#fff" stroke-width=".8" opacity=".5"/>
+      <line x1="15" y1="26" x2="19" y2="13" stroke="#fff" stroke-width=".8" opacity=".5"/>
+      <circle cx="32" cy="32" r="5.5" fill="#f7b016" opacity=".25"/>
+      <circle cx="32" cy="32" r="3.5" fill="#f7b016"/>
+      <circle cx="32" cy="32" r="1.4" fill="#fff"/>
+    </svg>
+    <div class="nav-brand">
+      <span class="nav-pcybox">PCYBOX</span>
+      <span class="nav-orbis">ORBIS</span>
+    </div>
+  </a>
+
+  <div class="nav-links">
+    <a href="#features">Features</a>
+    <a href="#how">How it works</a>
+    <a href="#download">Download</a>
+    <a href="https://github.com/Mister-iks/netgraph" target="_blank" rel="noopener">GitHub</a>
+  </div>
+
+  <a href="#download" class="btn btn-gold">Download free</a>
+</nav>
+
+<!-- ── Hero ────────────────────────────────────────────────────────────────── -->
+<main>
+<section class="hero" aria-label="Hero">
+  <div class="hero-glow" aria-hidden="true"></div>
+
+  <!-- Full SVG logo (white variant, inline) -->
+  <svg class="hero-logo" viewBox="0 0 480 520" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <defs>
+      <filter id="glow-sm" x="-50%" y="-50%" width="200%" height="200%">
+        <feGaussianBlur stdDeviation="2.5" result="blur"/>
+        <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+      </filter>
+      <filter id="glow-md" x="-80%" y="-80%" width="260%" height="260%">
+        <feGaussianBlur stdDeviation="5" result="blur"/>
+        <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+      </filter>
+      <radialGradient id="bg-glow-h" cx="50%" cy="42%" r="45%">
+        <stop offset="0%" stop-color="#fff" stop-opacity=".06"/>
+        <stop offset="100%" stop-color="#000" stop-opacity="0"/>
+      </radialGradient>
+      <radialGradient id="cn-h" cx="35%" cy="35%" r="65%">
+        <stop offset="0%" stop-color="#fde68a"/>
+        <stop offset="100%" stop-color="#f7b016"/>
+      </radialGradient>
+      <linearGradient id="ring-h" x1="0%" y1="0%" x2="0%" y2="100%">
+        <stop offset="0%" stop-color="#fff" stop-opacity=".9"/>
+        <stop offset="100%" stop-color="#fff" stop-opacity=".3"/>
+      </linearGradient>
+      <clipPath id="sc-h"><circle cx="240" cy="210" r="118"/></clipPath>
+    </defs>
+    <rect width="480" height="520" fill="#000"/>
+    <circle cx="240" cy="210" r="160" fill="url(#bg-glow-h)"/>
+    <g clip-path="url(#sc-h)" opacity=".15">
+      <ellipse cx="240" cy="210" rx="118" ry="32" fill="none" stroke="#fff" stroke-width=".8"/>
+      <ellipse cx="240" cy="210" rx="118" ry="75" fill="none" stroke="#fff" stroke-width=".8"/>
+      <ellipse cx="240" cy="210" rx="118" ry="108" fill="none" stroke="#fff" stroke-width=".8"/>
+      <ellipse cx="240" cy="210" rx="35" ry="118" fill="none" stroke="#fff" stroke-width=".8"/>
+      <ellipse cx="240" cy="210" rx="80" ry="118" fill="none" stroke="#fff" stroke-width=".8"/>
+    </g>
+    <circle cx="240" cy="210" r="118" fill="none" stroke="url(#ring-h)" stroke-width="1.8" filter="url(#glow-sm)"/>
+    <line x1="155" y1="110" x2="332" y2="118" stroke="#fff" stroke-width=".9" opacity=".25"/>
+    <line x1="332" y1="118" x2="355" y2="230" stroke="#fff" stroke-width=".9" opacity=".25"/>
+    <line x1="355" y1="230" x2="308" y2="300" stroke="#fff" stroke-width=".9" opacity=".25"/>
+    <line x1="308" y1="300" x2="158" y2="298" stroke="#fff" stroke-width=".9" opacity=".25"/>
+    <line x1="158" y1="298" x2="124" y2="175" stroke="#fff" stroke-width=".9" opacity=".25"/>
+    <line x1="124" y1="175" x2="155" y2="110" stroke="#fff" stroke-width=".9" opacity=".25"/>
+    <line x1="155" y1="110" x2="240" y2="210" stroke="#fff" stroke-width=".7" opacity=".15"/>
+    <line x1="332" y1="118" x2="240" y2="210" stroke="#fff" stroke-width=".7" opacity=".15"/>
+    <line x1="355" y1="230" x2="240" y2="210" stroke="#fff" stroke-width=".7" opacity=".15"/>
+    <line x1="308" y1="300" x2="240" y2="210" stroke="#fff" stroke-width=".7" opacity=".15"/>
+    <line x1="124" y1="175" x2="240" y2="210" stroke="#fff" stroke-width=".7" opacity=".15"/>
+    <circle cx="155" cy="110" r="6.5" fill="#111" stroke="#fff" stroke-width="1.5" filter="url(#glow-sm)"/>
+    <circle cx="155" cy="110" r="3" fill="#f7b016"/>
+    <circle cx="332" cy="118" r="5.5" fill="#111" stroke="#fff" stroke-width="1.5" filter="url(#glow-sm)"/>
+    <circle cx="332" cy="118" r="2.5" fill="#f7b016"/>
+    <circle cx="355" cy="230" r="6" fill="#111" stroke="#fff" stroke-width="1.5" filter="url(#glow-sm)"/>
+    <circle cx="355" cy="230" r="3" fill="#f7b016"/>
+    <circle cx="308" cy="300" r="5" fill="#111" stroke="#fff" stroke-width="1.5" filter="url(#glow-sm)"/>
+    <circle cx="308" cy="300" r="2.5" fill="#f7b016"/>
+    <circle cx="158" cy="298" r="4.5" fill="#111" stroke="#fff" stroke-width="1.5" filter="url(#glow-sm)"/>
+    <circle cx="158" cy="298" r="2" fill="#f7b016"/>
+    <circle cx="124" cy="175" r="6" fill="#111" stroke="#fff" stroke-width="1.5" filter="url(#glow-sm)"/>
+    <circle cx="124" cy="175" r="3" fill="#f7b016"/>
+    <circle cx="240" cy="210" r="22" fill="#f7b016" fill-opacity=".08"/>
+    <circle cx="240" cy="210" r="14" fill="#f7b016" fill-opacity=".2" filter="url(#glow-md)"/>
+    <circle cx="240" cy="210" r="7" fill="url(#cn-h)" filter="url(#glow-md)"/>
+    <circle cx="240" cy="210" r="3" fill="#fff"/>
+    <text x="240" y="374" text-anchor="middle" fill="#f7b016" font-family="'Space Mono',monospace" font-size="10" letter-spacing="8">PCYBOX</text>
+    <text x="240" y="434" text-anchor="middle" fill="#fff" font-family="'Syne',sans-serif" font-size="60" font-weight="800" letter-spacing="10" filter="url(#glow-sm)">ORBIS</text>
+    <line x1="148" y1="447" x2="332" y2="447" stroke="#f7b016" stroke-width=".8" opacity=".5"/>
+    <text x="240" y="470" text-anchor="middle" fill="#fff" fill-opacity=".4" font-family="'Outfit',sans-serif" font-size="12" letter-spacing="3" font-weight="300">Map the invisible.</text>
+  </svg>
+
+  <p class="hero-pcybox">PCYBOX</p>
+  <h1>ORBIS</h1>
+  <p class="hero-tagline">Map the invisible.</p>
+  <p class="hero-sub">
+    See every connection your computer makes — in real time.
+    Who it talks to, where they are, and which app is responsible.
+  </p>
+
+  <div class="hero-ctas">
+    <a href="#download" class="btn btn-gold btn-lg">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 12l-5-5h3V2h4v5h3L8 12zm-6 2h12v-2H2v2z"/></svg>
+      Download for Windows
+    </a>
+    <a href="https://github.com/Mister-iks/netgraph" target="_blank" rel="noopener" class="btn btn-outline btn-lg">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+      View on GitHub
+    </a>
+  </div>
+
+  <div class="hero-meta" role="list">
+    <div class="hero-meta-item" role="listitem">
+      <div class="hero-meta-val">Real-time</div>
+      <div class="hero-meta-label">Live capture</div>
+    </div>
+    <div class="hero-meta-item" role="listitem">
+      <div class="hero-meta-val">8+</div>
+      <div class="hero-meta-label">Features</div>
+    </div>
+    <div class="hero-meta-item" role="listitem">
+      <div class="hero-meta-val">Free</div>
+      <div class="hero-meta-label">Open source</div>
+    </div>
+    <div class="hero-meta-item" role="listitem">
+      <div class="hero-meta-val">Windows</div>
+      <div class="hero-meta-label">10 &amp; 11, 64-bit</div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Features ─────────────────────────────────────────────────────────────── -->
+<section class="features" id="features" aria-labelledby="features-title">
+  <div class="container">
+    <div class="features-header">
+      <p class="section-label">What it does</p>
+      <h2 id="features-title">Everything happening<br/>on your network.</h2>
+      <p class="section-sub">PCYBOX Orbis pulls back the curtain on your machine's network activity — no technical knowledge required.</p>
+    </div>
+
+    <div class="features-grid" role="list">
+
+      <article class="feature-card" role="listitem">
+        <div class="feature-icon" aria-hidden="true">
+          <svg viewBox="0 0 22 22" fill="none" stroke="#f7b016" stroke-width="1.6" stroke-linecap="round">
+            <circle cx="11" cy="11" r="3"/>
+            <circle cx="4" cy="5" r="2"/><line x1="6" y1="6" x2="9" y2="9"/>
+            <circle cx="18" cy="4" r="2"/><line x1="16" y1="5" x2="13" y2="8"/>
+            <circle cx="19" cy="14" r="2"/><line x1="17" y1="13" x2="14" y2="12"/>
+            <circle cx="14" cy="20" r="2"/><line x1="13" y1="18" x2="12" y2="14"/>
+            <circle cx="5" cy="18" r="2"/><line x1="7" y1="17" x2="9" y2="14"/>
+          </svg>
+        </div>
+        <h3 class="feature-title">Force Graph</h3>
+        <p class="feature-desc">Nodes stabilize into a live graph of all active connections. Drag, lock, and explore. Your machine sits at the center.</p>
+      </article>
+
+      <article class="feature-card" role="listitem">
+        <div class="feature-icon" aria-hidden="true">
+          <svg viewBox="0 0 22 22" fill="none" stroke="#f7b016" stroke-width="1.6" stroke-linecap="round">
+            <ellipse cx="11" cy="11" rx="9" ry="5"/>
+            <ellipse cx="11" cy="11" rx="9" ry="9"/>
+            <line x1="2" y1="11" x2="20" y2="11"/>
+            <line x1="11" y1="2" x2="11" y2="20"/>
+          </svg>
+        </div>
+        <h3 class="feature-title">World Map</h3>
+        <p class="feature-desc">Every IP is geolocated and drawn on a live globe. Animated arcs show traffic flowing to datacenters, CDNs, and clouds worldwide.</p>
+      </article>
+
+      <article class="feature-card" role="listitem">
+        <div class="feature-icon" aria-hidden="true">
+          <svg viewBox="0 0 22 22" fill="none" stroke="#f7b016" stroke-width="1.6" stroke-linecap="round">
+            <polyline points="2,16 6,9 10,13 14,7 18,11"/>
+            <line x1="2" y1="19" x2="20" y2="19"/>
+          </svg>
+        </div>
+        <h3 class="feature-title">60-min Timeline</h3>
+        <p class="feature-desc">A rolling history of your traffic, stored locally in SQLite. Scrub back in time to see what happened and when.</p>
+      </article>
+
+      <article class="feature-card" role="listitem">
+        <div class="feature-icon" aria-hidden="true">
+          <svg viewBox="0 0 22 22" fill="none" stroke="#f7b016" stroke-width="1.6" stroke-linecap="round">
+            <path d="M11 3l1.5 4h4l-3 2.5 1.5 4-4-2.5-4 2.5 1.5-4-3-2.5h4z"/>
+          </svg>
+        </div>
+        <h3 class="feature-title">Anomaly Detection</h3>
+        <p class="feature-desc">Automatically flags suspicious patterns — port scans, beaconing, potential exfiltration. Know when something is off.</p>
+      </article>
+
+      <article class="feature-card" role="listitem">
+        <div class="feature-icon" aria-hidden="true">
+          <svg viewBox="0 0 22 22" fill="none" stroke="#f7b016" stroke-width="1.6" stroke-linecap="round">
+            <rect x="3" y="4" width="16" height="12" rx="1"/>
+            <line x1="7" y1="20" x2="15" y2="20"/>
+            <line x1="11" y1="16" x2="11" y2="20"/>
+            <line x1="7" y1="8" x2="7" y2="12"/>
+            <line x1="11" y1="7" x2="11" y2="12"/>
+            <line x1="15" y1="10" x2="15" y2="12"/>
+          </svg>
+        </div>
+        <h3 class="feature-title">Process Attribution</h3>
+        <p class="feature-desc">Not just IPs — know exactly which app on your machine is generating the traffic. Top 5 processes per connection.</p>
+      </article>
+
+      <article class="feature-card" role="listitem">
+        <div class="feature-icon" aria-hidden="true">
+          <svg viewBox="0 0 22 22" fill="none" stroke="#f7b016" stroke-width="1.6" stroke-linecap="round">
+            <path d="M12 2a9 9 0 1 1-9 9"/>
+            <path d="M12 2v5l3 3"/>
+          </svg>
+        </div>
+        <h3 class="feature-title">Privacy Score</h3>
+        <p class="feature-desc">A real-time score of how much your outgoing traffic is going to trackers, ad networks, or unknown destinations.</p>
+      </article>
+
+    </div>
+  </div>
+</section>
+
+<!-- ── How it works ──────────────────────────────────────────────────────────── -->
+<section class="how" id="how" aria-labelledby="how-title">
+  <div class="container">
+    <p class="section-label">Simple by design</p>
+    <h2 id="how-title">Up in 60 seconds.</h2>
+    <p class="section-sub">Install, launch, and your network comes alive. No configuration, no cloud account, no data leaving your machine.</p>
+
+    <div class="steps" role="list">
+      <div class="step" role="listitem">
+        <p class="step-num">01 — INSTALL</p>
+        <h3 class="step-title">Run the installer</h3>
+        <p class="step-desc">Download the Windows installer (101 MB). Accept the UAC prompt — admin rights are needed for network capture. Npcap installs automatically if missing.</p>
+      </div>
+      <div class="step" role="listitem">
+        <p class="step-num">02 — LAUNCH</p>
+        <h3 class="step-title">Open PCYBOX Orbis</h3>
+        <p class="step-desc">The app starts its capture engine in the background. Within seconds the force graph populates with your live connections.</p>
+      </div>
+      <div class="step" role="listitem">
+        <p class="step-num">03 — EXPLORE</p>
+        <h3 class="step-title">Map your traffic</h3>
+        <p class="step-desc">Switch between the graph and the world map. Hover nodes for details, check the timeline, review your privacy score.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Demo screens (placeholder) ───────────────────────────────────────────── -->
+<section class="demo" id="demo" aria-labelledby="demo-title">
+  <div class="container">
+    <p class="section-label">In action</p>
+    <h2 id="demo-title">See what's running<br/>on your machine.</h2>
+    <p class="section-sub">Every dot is a server. Every arc is a live connection. Every label is a hostname or IP you're talking to right now.</p>
+
+    <div class="demo-screens" aria-label="Application screenshots">
+      <div class="screen-card" style="background: #050a14;">
+        <!-- Placeholder SVG for force graph view -->
+        <svg viewBox="0 0 400 225" style="width:90%;opacity:.18" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="200" cy="112" r="12" fill="#f7b016"/>
+          <circle cx="120" cy="60" r="6" fill="#3b82f6"/><line x1="200" y1="112" x2="120" y2="60" stroke="#3b82f6" stroke-width=".8" opacity=".5"/>
+          <circle cx="300" cy="50" r="5" fill="#22c55e"/><line x1="200" y1="112" x2="300" y2="50" stroke="#22c55e" stroke-width=".8" opacity=".5"/>
+          <circle cx="340" cy="140" r="7" fill="#6366f1"/><line x1="200" y1="112" x2="340" y2="140" stroke="#6366f1" stroke-width=".8" opacity=".5"/>
+          <circle cx="270" cy="190" r="5" fill="#f59e0b"/><line x1="200" y1="112" x2="270" y2="190" stroke="#f59e0b" stroke-width=".8" opacity=".5"/>
+          <circle cx="90" cy="165" r="6" fill="#ef4444"/><line x1="200" y1="112" x2="90" y2="165" stroke="#ef4444" stroke-width=".8" opacity=".5"/>
+          <circle cx="60" cy="100" r="4" fill="#94a3b8"/><line x1="200" y1="112" x2="60" y2="100" stroke="#94a3b8" stroke-width=".8" opacity=".5"/>
+        </svg>
+        <p class="screen-label">Force Graph view</p>
+      </div>
+      <div class="screen-card" style="background: #03070f;">
+        <!-- Placeholder SVG for world map view -->
+        <svg viewBox="0 0 400 225" style="width:90%;opacity:.18" xmlns="http://www.w3.org/2000/svg">
+          <ellipse cx="200" cy="112" rx="190" ry="90" fill="none" stroke="#1e3a5f" stroke-width="1"/>
+          <ellipse cx="200" cy="112" rx="140" ry="70" fill="none" stroke="#1e293b" stroke-width=".5"/>
+          <circle cx="200" cy="112" r="5" fill="#3b82f6"/>
+          <path d="M200 112 Q250 60 320 55" fill="none" stroke="#f7b016" stroke-width=".8" opacity=".6" stroke-dasharray="4 6"/>
+          <path d="M200 112 Q100 80 50 90" fill="none" stroke="#22c55e" stroke-width=".8" opacity=".6" stroke-dasharray="4 6"/>
+          <path d="M200 112 Q280 130 350 120" fill="none" stroke="#6366f1" stroke-width=".8" opacity=".6" stroke-dasharray="4 6"/>
+          <circle cx="320" cy="55" r="4" fill="#f7b016" opacity=".7"/>
+          <circle cx="50" cy="90" r="3" fill="#22c55e" opacity=".7"/>
+          <circle cx="350" cy="120" r="4" fill="#6366f1" opacity=".7"/>
+        </svg>
+        <p class="screen-label">World Map view</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Download ──────────────────────────────────────────────────────────────── -->
+<section class="download" id="download" aria-labelledby="download-title">
+  <div class="container">
+    <div class="download-box">
+      <div class="download-badge" aria-label="Version 1.0.0 stable">
+        <span>v1.0.0 — Stable</span>
+      </div>
+
+      <h2 class="download-title" id="download-title">Download PCYBOX Orbis.<br/>It's free.</h2>
+      <p class="download-sub">
+        One installer. No subscription, no account, no telemetry.
+        Your traffic data stays on your machine.
+      </p>
+
+      <div class="download-ctas">
+        <a href="https://github.com/Mister-iks/netgraph/releases/latest" class="btn btn-gold btn-lg" rel="noopener">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 12l-5-5h3V2h4v5h3L8 12zm-6 2h12v-2H2v2z"/></svg>
+          Download for Windows
+        </a>
+        <a href="https://github.com/Mister-iks/netgraph" class="btn btn-outline btn-lg" target="_blank" rel="noopener">
+          Source code
+        </a>
+      </div>
+
+      <p class="download-note">
+        Windows 10 / 11 — 64-bit — ~101 MB<br/>
+        Requires administrator rights &amp; <a href="https://npcap.com" target="_blank" rel="noopener">Npcap</a> (installed automatically)
+      </p>
+    </div>
+  </div>
+</section>
+</main>
+
+<!-- ── Footer ───────────────────────────────────────────────────────────────── -->
+<footer>
+  <div class="footer-logo" aria-label="PCYBOX Orbis">
+    <svg width="24" height="24" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <circle cx="32" cy="32" r="32" fill="#000"/>
+      <circle cx="32" cy="32" r="26" stroke="#fff" stroke-width="1" opacity=".7"/>
+      <circle cx="32" cy="32" r="3.5" fill="#f7b016"/>
+      <circle cx="32" cy="32" r="1.4" fill="#fff"/>
+    </svg>
+    <span class="footer-brand">PCYBOX ORBIS</span>
+  </div>
+
+  <nav class="footer-links" aria-label="Footer navigation">
+    <a href="#features">Features</a>
+    <a href="#download">Download</a>
+    <a href="https://github.com/Mister-iks/netgraph" target="_blank" rel="noopener">GitHub</a>
+    <a href="https://github.com/Mister-iks/netgraph/issues" target="_blank" rel="noopener">Report a bug</a>
+  </nav>
+
+  <p class="footer-copy">© 2026 PCYBOX. Built by <a href="https://github.com/Mister-iks" style="color:inherit">Mister-iks</a>.</p>
+</footer>
+
+</body>
+</html>
