@@ -1,0 +1,14 @@
+.git
+.claude
+backend/.venv
+backend/__pycache__
+backend/**/__pycache__
+frontend/node_modules
+frontend/dist
+electron
+website
+dist
+docs
+resources
+data
+*.log

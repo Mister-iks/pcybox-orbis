@@ -1,20 +1,16 @@
-version: '3.9'
-
 services:
-  backend:
-    build: ./backend
+  orbis:
+    build: .
+    # Host networking — Scapy captures traffic on the real host interfaces.
+    # Linux only. Docker Desktop (Mac/Windows) uses a VM and won't capture host traffic.
     network_mode: host
-    privileged: true        # required for packet capture
-    volumes:
-      - ./data:/app/data    # GeoIP database
+    cap_add:
+      - NET_ADMIN   # promiscuous mode
+      - NET_RAW     # raw socket / packet capture
     environment:
-      - PYTHONUNBUFFERED=1
-    restart: unless-stopped
-
-  frontend:
-    build: ./frontend
-    ports:
-      - "5173:5173"
-    depends_on:
-      - backend
+      - ORBIS_BIND=0.0.0.0
+    volumes:
+      # data/GeoLite2-City.mmdb  — optional, for offline geolocation
+      # data/netgraph.db         — created automatically at runtime
+      - ./data:/app/data
     restart: unless-stopped

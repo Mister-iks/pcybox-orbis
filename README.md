@@ -48,6 +48,36 @@ Requires administrator rights for network capture. Npcap is installed automatica
 | Desktop wrapper | Electron 28 |
 | Geolocation | MaxMind GeoLite2 |
 
+## Docker (Linux)
+
+The Docker deployment is for Linux users who want to run Orbis without installing anything beyond Docker.
+Packet capture works via `network_mode: host` — the container sees real host traffic.
+
+> **Note:** Docker Desktop on Mac/Windows runs inside a VM and cannot capture traffic from the Windows/macOS host. Use the Electron installer on those platforms.
+
+```bash
+# Clone and enter the repo
+git clone https://github.com/Mister-iks/pcybox-orbis
+cd pcybox-orbis
+
+# Optional: place your MaxMind GeoLite2-City.mmdb in data/ for offline geolocation
+# Without it, the app falls back to ip-api.com (45 req/min, no key needed)
+mkdir -p data
+
+# Build and run (requires Docker + root/sudo for raw socket capture)
+sudo docker compose up --build
+```
+
+Open **http://localhost:8000** in your browser.
+
+To run in the background: `sudo docker compose up -d --build`
+
+Limitations compared to the Electron app:
+- Process attribution is limited to container processes (host PIDs not shared by default)
+- No LAN scanner on some network configurations
+
+---
+
 ## Development
 
 ### Requirements

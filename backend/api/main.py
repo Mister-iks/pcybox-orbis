@@ -271,3 +271,12 @@ async def websocket_endpoint(websocket: WebSocket) -> None:
     except WebSocketDisconnect:
         if websocket in connected_clients:
             connected_clients.remove(websocket)
+
+
+# ── Serve React build (Docker / non-Electron) — must be last ─────────────────
+from pathlib import Path
+from fastapi.staticfiles import StaticFiles
+
+_frontend_dist = Path(__file__).parent.parent.parent / 'frontend_dist'
+if _frontend_dist.exists():
+    app.mount('/', StaticFiles(directory=str(_frontend_dist), html=True), name='frontend')
