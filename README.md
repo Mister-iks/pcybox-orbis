@@ -128,7 +128,6 @@ npm run build:dir
 # npx electron-builder --win nsis --prepackaged ../dist/installer/win-unpacked
 ```
 
-See [INSTALL.md](NetGraph-v1.0.0-stable-2026-04-28/INSTALL.md) for the full build and packaging guide.
 
 ## Project structure
 

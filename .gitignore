@@ -26,3 +26,14 @@ Thumbs.db
 # IDE
 .vscode/
 .idea/
+
+# Logs
+*.log
+
+# Local runtime data (SQLite history)
+data/*.db
+data/*.db-shm
+data/*.db-wal
+
+# Claude Code internal
+.claude/
