@@ -486,7 +486,7 @@
           <div style="margin-top:12px;">
             <div class="label-tag" style="margin-bottom:10px; color:#f7b016;">Install</div>
             <h3 style="font-family:'Playfair Display',serif; font-size:22px; font-weight:900; margin-bottom:14px;">Run the installer</h3>
-            <p style="color:#a89f92; font-size:14px; font-weight:300; line-height:1.7;">Download the Windows installer (~101 MB). Accept the UAC prompt admin rights needed. Npcap installs automatically.</p>
+            <p style="color:#a89f92; font-size:14px; font-weight:300; line-height:1.7;">Download the Windows installer (~101 MB). Accept the UAC prompt — admin rights required. If Npcap is missing, a setup wizard opens: 30 seconds to click through.</p>
           </div>
         </div>
         <div style="padding:52px 40px; border-right:1px solid #242420;">
@@ -582,9 +582,19 @@
         </div>
 
         <p style="font-family:'IBM Plex Mono',monospace; font-size:11px; color:#a89f92; letter-spacing:.05em; line-height:2.1;">
-          Windows 10 / 11 64-bit ~101 MB<br/>
-          Requires administrator rights &amp; <a href="https://npcap.com" target="_blank" rel="noopener" style="text-decoration:underline; color:#6b6b60;">Npcap</a> (installed automatically)
+          Windows 10 / 11 64-bit &nbsp;·&nbsp; ~101 MB<br/>
+          Requires administrator rights &amp; <a href="https://npcap.com" target="_blank" rel="noopener" style="text-decoration:underline; color:#6b6b60;">Npcap</a> (wizard opens on first launch)
         </p>
+
+        <div style="margin-top:28px; padding-top:24px; border-top:1px solid #d9d2c8;">
+          <p style="font-family:'IBM Plex Mono',monospace; font-size:10px; color:#a89f92; letter-spacing:.1em; text-transform:uppercase; margin-bottom:10px;">On Linux</p>
+          <p style="font-size:14px; color:#6b6b60; font-weight:300; line-height:1.7; margin-bottom:12px;">
+            Docker deployment available for Linux users. Host networking gives Scapy direct access to your interfaces — no drivers to install.
+          </p>
+          <a href="https://github.com/Mister-iks/pcybox-orbis#docker-linux" target="_blank" rel="noopener" style="font-family:'IBM Plex Mono',monospace; font-size:11px; color:#0a0a08; letter-spacing:.08em; text-decoration:underline;">
+            docker compose up --build &rarr;
+          </a>
+        </div>
       </div>
     </section>
 
