@@ -15,6 +15,10 @@ See every connection your computer makes - who it talks to, where they are, and 
 
 [Website](https://orbis.pcybox.com) - [Download](https://github.com/Mister-iks/pcybox-orbis/releases/latest) - [Report a bug](https://github.com/Mister-iks/pcybox-orbis/issues)
 
+<br/>
+
+<img src="docs/demo.gif" alt="PCYBOX Orbis demo" width="100%"/>
+
 </div>
 
 ---
