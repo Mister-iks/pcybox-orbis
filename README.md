@@ -42,6 +42,8 @@ See every connection your computer makes - who it talks to, where they are, and 
 
 Requires administrator rights for network capture. Npcap is installed automatically on first launch.
 
+> **Windows SmartScreen warning?** Click **"More info"** → **"Run anyway"**. The app is not yet code-signed — this is expected for an indie release.
+
 ## Stack
 
 | Layer | Technology |
