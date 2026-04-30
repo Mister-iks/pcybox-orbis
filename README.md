@@ -9,7 +9,7 @@
 Real-time network traffic visualizer for Windows.
 See every connection your computer makes - who it talks to, where they are, and which app is responsible.
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](LICENSE)
 [![Platform: Windows](https://img.shields.io/badge/Platform-Windows%2010%2F11-blue.svg)]()
 [![Version](https://img.shields.io/badge/Version-1.0.0-green.svg)]()
 
@@ -150,7 +150,9 @@ pcybox-orbis/
 
 ## License
 
-MIT - see [LICENSE](LICENSE)
+AGPL v3 - see [LICENSE](LICENSE)
+
+Free to use, study, and modify. Any derivative work must also be open source under AGPL v3. Commercial use requires a separate license - contact ibrahimapro289@gmail.com
 
 ---
 
