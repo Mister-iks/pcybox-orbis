@@ -2,6 +2,7 @@ import { Wifi, Smartphone, Monitor, Tv, Cpu, HelpCircle } from 'lucide-react'
 import PrivacyScore from './PrivacyScore'
 import BandwidthChart from './BandwidthChart'
 import SearchBar from './SearchBar'
+import { useT } from '../i18n'
 
 const DEVICE_ICONS = {
   router:  Wifi,
@@ -38,11 +39,13 @@ function matchesFilter(node, filter) {
 }
 
 export default function Sidebar({ nodes, lanDevices, packets, selected, onClose, privacyScore, bandwidth, filter, onFilterChange }) {
+  const { t } = useT()
   const extNodes = Object.values(nodes).filter(n => n.id !== 'local')
   const devList  = Object.values(lanDevices)
   const totalBytes = extNodes.reduce((a, n) => a + (n.bytes || 0), 0)
 
   const filteredNodes = extNodes.filter(n => matchesFilter(n, filter))
+  const hiddenCount = filteredNodes.length < extNodes.length ? extNodes.length : null
 
   return (
     <div style={{
@@ -50,73 +53,65 @@ export default function Sidebar({ nodes, lanDevices, packets, selected, onClose,
       borderRight: '1px solid #334155', display: 'flex',
       flexDirection: 'column', overflow: 'hidden',
     }}>
-      {/* Header */}
       <div style={{ padding: '14px 20px 8px', borderBottom: '1px solid #334155' }}>
         <div style={{ marginBottom: 6 }}>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 7, marginBottom: 2 }}>
             <span style={{ fontSize: 9, fontFamily: 'monospace', color: '#f7b016', letterSpacing: 3, fontWeight: 600 }}>PCYBOX</span>
             <span style={{ fontSize: 17, fontWeight: 800, color: '#f1f5f9', letterSpacing: 1 }}>ORBIS</span>
           </div>
-          <span style={{ fontSize: 10, color: '#475569', letterSpacing: 1 }}>Map the invisible.</span>
+          <span style={{ fontSize: 10, color: '#475569', letterSpacing: 1 }}>{t('tagline')}</span>
         </div>
         <BandwidthChart data={bandwidth || []} />
       </div>
 
-      {/* Stats */}
       <div style={{ padding: '10px 20px', borderBottom: '1px solid #334155' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-          <Stat label="Devices LAN" value={devList.length} color="#f97316" />
-          <Stat label="Hôtes ext." value={extNodes.length} />
-          <Stat label="Trafic" value={fmt(totalBytes)} />
+          <Stat label={t('stat_lan')}     value={devList.length}      color="#f97316" />
+          <Stat label={t('stat_ext')}     value={extNodes.length} />
+          <Stat label={t('stat_traffic')} value={fmt(totalBytes)} />
         </div>
       </div>
 
-      {/* Privacy Score */}
       {privacyScore && (
         <PrivacyScore
           score={privacyScore.score}
           grade={privacyScore.grade}
           color={privacyScore.color}
-          label={privacyScore.label}
+          labelKey={privacyScore.labelKey}
           factors={privacyScore.factors}
         />
       )}
 
-      {/* Selected node detail */}
       {selected && (
         <div style={{ padding: '12px 20px', borderBottom: '1px solid #334155', background: '#0f172a' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
             <span style={{ fontSize: 12, fontWeight: 600, color: '#f1f5f9' }}>
               {selected.label || selected.ip}
             </span>
-            <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', fontSize: 16 }}>✕</button>
+            <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', fontSize: 16 }}>x</button>
           </div>
           <NodeDetail node={selected} />
         </div>
       )}
 
-      {/* Search / Filter */}
       <SearchBar filter={filter} onChange={onFilterChange} />
 
       <div style={{ flex: 1, overflowY: 'auto' }}>
-        {/* LAN devices */}
         {devList.length > 0 && (
           <>
-            <SectionTitle label={`Devices LAN (${devList.length})`} />
+            <SectionTitle label={t('section_lan', devList.length)} />
             {devList.map(d => <DeviceRow key={d.id} device={d} />)}
           </>
         )}
 
-        {/* External hosts */}
-        <SectionTitle label={`Hôtes externes (${filteredNodes.length}${filteredNodes.length < extNodes.length ? `/${extNodes.length}` : ''})`} />
+        <SectionTitle label={t('section_ext', filteredNodes.length, hiddenCount)} />
         {filteredNodes
           .sort((a, b) => (b.bytes || 0) - (a.bytes || 0))
           .map(n => <NodeRow key={n.id} node={n} />)}
       </div>
 
-      {/* Live packet feed */}
       <div style={{ borderTop: '1px solid #334155', maxHeight: 160, overflowY: 'auto' }}>
-        <SectionTitle label="Flux récents" />
+        <SectionTitle label={t('section_packets')} />
         {packets.slice(0, 25).map((p, i) => <PacketRow key={i} packet={p} />)}
       </div>
     </div>
@@ -141,6 +136,7 @@ function Stat({ label, value, color }) {
 }
 
 function DeviceRow({ device }) {
+  const { t } = useT()
   const Icon = DEVICE_ICONS[device.device_type] || HelpCircle
   return (
     <div style={{
@@ -158,7 +154,7 @@ function DeviceRow({ device }) {
         </div>
       </div>
       <div style={{ fontSize: 9, color: device.online === false ? '#ef4444' : '#22c55e', flexShrink: 0 }}>
-        {device.online === false ? 'offline' : 'online'}
+        {device.online === false ? t('offline') : t('online')}
       </div>
     </div>
   )
@@ -180,18 +176,19 @@ function NodeRow({ node }) {
 }
 
 function NodeDetail({ node }) {
+  const { t } = useT()
   const fields = [
-    ['IP',        node.ip],
-    ['MAC',       node.mac],
-    ['Hostname',  node.hostname],
-    ['Vendor',    node.vendor],
-    ['Type',      node.device_type],
-    ['Pays',      node.country],
-    ['Ville',     node.city],
-    ['Org',       node.org],
-    ['Catégorie', node.category],
-    ['Trafic',    fmt(node.bytes || 0)],
-    ['Paquets',   node.packets],
+    [t('field_ip'),       node.ip],
+    [t('field_mac'),      node.mac],
+    [t('field_hostname'), node.hostname],
+    [t('field_vendor'),   node.vendor],
+    [t('field_type'),     node.device_type],
+    [t('field_country'),  node.country],
+    [t('field_city'),     node.city],
+    [t('field_org'),      node.org],
+    [t('field_category'), node.category],
+    [t('field_traffic'),  fmt(node.bytes || 0)],
+    [t('field_packets'),  node.packets],
   ]
 
   const processes = node.processes
@@ -210,7 +207,7 @@ function NodeDetail({ node }) {
       {processes.length > 0 && (
         <>
           <div style={{ fontSize: 9, color: '#475569', textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 8, marginBottom: 4 }}>
-            Processus
+            {t('processes')}
           </div>
           {processes.map(([name, stats]) => (
             <div key={name} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3, alignItems: 'center' }}>
@@ -231,7 +228,7 @@ function PacketRow({ packet }) {
   const color = out ? '#22c55e' : '#3b82f6'
   return (
     <div style={{ padding: '3px 20px', display: 'flex', alignItems: 'center', gap: 6 }}>
-      <span style={{ color, fontSize: 10, flexShrink: 0 }}>{out ? '→' : '←'}</span>
+      <span style={{ color, fontSize: 10, flexShrink: 0 }}>{out ? '>' : '<'}</span>
       {packet.process && (
         <span style={{ fontSize: 9, color: '#f59e0b', flexShrink: 0, maxWidth: 80, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {packet.process}

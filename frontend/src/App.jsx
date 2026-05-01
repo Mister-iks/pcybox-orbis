@@ -8,6 +8,7 @@ import Timeline from './components/Timeline'
 import { useWebSocket } from './hooks/useWebSocket'
 import { computePrivacyScore } from './scoring/privacy'
 import { WS_URL } from './api'
+import { useT } from './i18n'
 
 export default function App() {
   const { nodes, edges, lanDevices, packets, alerts, unread, clearUnread, status, bandwidth } = useWebSocket(WS_URL)
@@ -61,11 +62,11 @@ export default function App() {
             <MapView nodes={nodes} onNodeClick={setSelected} />
           )}
 
-          {/* Top-right controls */}
           <div style={{
             position: 'absolute', top: 16, right: 16,
             display: 'flex', alignItems: 'center', gap: 8,
           }}>
+            <LangToggle />
             <ViewToggle view={view} onChange={setView} />
             <AlertBell unread={unread} onClick={handleBell} />
             <StatusBadge status={status} lanCount={Object.keys(lanDevices).length} />
@@ -86,10 +87,34 @@ export default function App() {
   )
 }
 
+function LangToggle() {
+  const { lang, setLang } = useT()
+  return (
+    <div style={{
+      display: 'flex', background: '#1e293b',
+      border: '1px solid #334155', borderRadius: 20, overflow: 'hidden',
+    }}>
+      {['en', 'fr'].map(l => (
+        <button key={l} onClick={() => setLang(l)} style={{
+          background: lang === l ? '#3b82f6' : 'transparent',
+          border: 'none', cursor: 'pointer',
+          color: lang === l ? '#fff' : '#64748b',
+          padding: '5px 12px', fontSize: 11, fontWeight: 600,
+          textTransform: 'uppercase',
+          transition: 'background 0.15s',
+        }}>
+          {l}
+        </button>
+      ))}
+    </div>
+  )
+}
+
 function ViewToggle({ view, onChange }) {
+  const { t } = useT()
   const items = [
-    { id: 'graph', Icon: Hexagon, label: 'Graphe' },
-    { id: 'map',   Icon: Globe,   label: 'Carte'  },
+    { id: 'graph', Icon: Hexagon, label: t('nav_graph') },
+    { id: 'map',   Icon: Globe,   label: t('nav_map')   },
   ]
   return (
     <div style={{
@@ -113,8 +138,14 @@ function ViewToggle({ view, onChange }) {
 }
 
 function StatusBadge({ status, lanCount }) {
+  const { t } = useT()
   const colors = { connected: '#22c55e', connecting: '#f59e0b', disconnected: '#ef4444', error: '#ef4444' }
-  const labels = { connected: 'Live', connecting: 'Connexion…', disconnected: 'Déconnecté', error: 'Erreur' }
+  const labels = {
+    connected:    t('status_connected'),
+    connecting:   t('status_connecting'),
+    disconnected: t('status_disconnected'),
+    error:        t('status_error'),
+  }
   return (
     <div style={{
       background: '#1e293b', border: '1px solid #334155',
@@ -125,7 +156,7 @@ function StatusBadge({ status, lanCount }) {
       <span style={{ fontSize: 11, color: '#e2e8f0' }}>{labels[status] || status}</span>
       {lanCount > 0 && (
         <span style={{ fontSize: 11, color: '#f97316', borderLeft: '1px solid #334155', paddingLeft: 8 }}>
-          {lanCount} device{lanCount > 1 ? 's' : ''} LAN
+          {t('lan_devices', lanCount)}
         </span>
       )}
     </div>
@@ -133,17 +164,18 @@ function StatusBadge({ status, lanCount }) {
 }
 
 function Legend() {
+  const { t } = useT()
   const items = [
-    { Icon: Wifi,          color: '#f97316', label: 'Router'   },
-    { Icon: Smartphone,    color: '#a855f7', label: 'Phone'    },
-    { Icon: Monitor,       color: '#06b6d4', label: 'PC'       },
-    { Icon: Cpu,           color: '#84cc16', label: 'IoT'      },
-    { Icon: ShieldCheck,   color: '#22c55e', label: 'HTTPS'    },
-    { Icon: Radio,         color: '#f59e0b', label: 'Tracking' },
-    { Icon: Zap,           color: '#6366f1', label: 'CDN'      },
-    { Icon: Globe,         color: '#38bdf8', label: 'DNS'      },
-    { Icon: AlertTriangle, color: '#ef4444', label: 'Alerte'   },
-    { Icon: HelpCircle,    color: '#94a3b8', label: 'Inconnu'  },
+    { Icon: Wifi,          color: '#f97316', label: 'Router'          },
+    { Icon: Smartphone,    color: '#a855f7', label: 'Phone'           },
+    { Icon: Monitor,       color: '#06b6d4', label: 'PC'              },
+    { Icon: Cpu,           color: '#84cc16', label: 'IoT'             },
+    { Icon: ShieldCheck,   color: '#22c55e', label: 'HTTPS'           },
+    { Icon: Radio,         color: '#f59e0b', label: 'Tracking'        },
+    { Icon: Zap,           color: '#6366f1', label: 'CDN'             },
+    { Icon: Globe,         color: '#38bdf8', label: 'DNS'             },
+    { Icon: AlertTriangle, color: '#ef4444', label: t('legend_alert') },
+    { Icon: HelpCircle,    color: '#94a3b8', label: t('legend_unknown') },
   ]
   return (
     <div style={{

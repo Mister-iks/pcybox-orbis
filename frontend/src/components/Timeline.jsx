@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import * as d3 from 'd3'
 import { API_BASE } from '../api'
+import { useT } from '../i18n'
 
-const EXPANDED_H = 110
+const EXPANDED_H  = 110
 const COLLAPSED_H = 32
 
 function fmt(bytes) {
@@ -11,17 +12,18 @@ function fmt(bytes) {
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`
 }
 
-function fmtMinute(iso) {
-  const d = new Date(iso + ':00Z')
-  return d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
-}
-
 export default function Timeline() {
+  const { t, lang } = useT()
   const svgRef = useRef(null)
   const [data, setData] = useState([])
   const [expanded, setExpanded] = useState(true)
   const [tooltip, setTooltip] = useState(null)
   const [range, setRange] = useState(60)
+
+  function fmtMinute(iso) {
+    const d = new Date(iso + ':00Z')
+    return d.toLocaleTimeString(lang === 'fr' ? 'fr-FR' : 'en-US', { hour: '2-digit', minute: '2-digit' })
+  }
 
   const fetchTimeline = useCallback(() => {
     fetch(`${API_BASE}/timeline?minutes=${range}`)
@@ -39,12 +41,12 @@ export default function Timeline() {
   useEffect(() => {
     if (!expanded || !svgRef.current || data.length === 0) return
     drawChart()
-  }, [data, expanded])
+  }, [data, expanded, lang])
 
   function drawChart() {
     const el = svgRef.current
     const W = el.clientWidth
-    const H = EXPANDED_H - 32  // leave room for header
+    const H = EXPANDED_H - 32
     const margin = { top: 8, right: 16, bottom: 24, left: 40 }
     const innerW = W - margin.left - margin.right
     const innerH = H - margin.top - margin.bottom
@@ -62,13 +64,11 @@ export default function Timeline() {
     const maxPkts = d3.max(data, d => d.packets) || 1
     const y = d3.scaleLinear().domain([0, maxPkts]).range([innerH, 0]).nice()
 
-    // Grid lines
     g.append('g').attr('class', 'grid')
       .call(d3.axisLeft(y).ticks(3).tickSize(-innerW).tickFormat(''))
       .selectAll('line').attr('stroke', '#1e3a5f').attr('stroke-dasharray', '3,3')
     g.select('.grid .domain').remove()
 
-    // Bars
     g.selectAll('rect.bar')
       .data(data)
       .join('rect')
@@ -81,10 +81,9 @@ export default function Timeline() {
       .attr('fill-opacity', d => d.alerts > 0 ? 0.85 : 0.65)
       .attr('rx', 2)
       .on('mouseover', (e, d) => setTooltip({ x: e.clientX, y: e.clientY, d }))
-      .on('mousemove', (e) => setTooltip(t => t ? { ...t, x: e.clientX, y: e.clientY } : null))
+      .on('mousemove', (e) => setTooltip(tt => tt ? { ...tt, x: e.clientX, y: e.clientY } : null))
       .on('mouseout', () => setTooltip(null))
 
-    // Alert dots on top of alert bars
     g.selectAll('circle.alert')
       .data(data.filter(d => d.alerts > 0))
       .join('circle')
@@ -95,7 +94,6 @@ export default function Timeline() {
       .attr('fill', '#ef4444')
       .attr('pointer-events', 'none')
 
-    // X axis — show only every N labels to avoid crowding
     const step = Math.max(1, Math.floor(data.length / 8))
     const xAxis = d3.axisBottom(x)
       .tickValues(data.filter((_, i) => i % step === 0).map(d => d.minute))
@@ -108,16 +106,15 @@ export default function Timeline() {
       .attr('fill', '#475569').attr('font-size', 9)
     g.selectAll('.domain, .tick line').attr('stroke', '#334155')
 
-    // Y axis
     g.append('g')
       .call(d3.axisLeft(y).ticks(3).tickFormat(d => d > 999 ? `${(d / 1000).toFixed(0)}k` : d))
       .selectAll('text').attr('fill', '#475569').attr('font-size', 9)
     g.select('.domain').attr('stroke', '#334155')
   }
 
-  const totalPkts  = data.reduce((a, d) => a + d.packets, 0)
-  const totalBytes = data.reduce((a, d) => a + d.bytes, 0)
-  const totalAlerts = data.reduce((a, d) => a + d.alerts, 0)
+  const totalPkts   = data.reduce((a, d) => a + d.packets, 0)
+  const totalBytes  = data.reduce((a, d) => a + d.bytes,   0)
+  const totalAlerts = data.reduce((a, d) => a + d.alerts,  0)
 
   return (
     <div style={{
@@ -129,7 +126,6 @@ export default function Timeline() {
       flexShrink: 0,
       position: 'relative',
     }}>
-      {/* Header bar */}
       <div
         onClick={() => setExpanded(v => !v)}
         style={{
@@ -139,13 +135,13 @@ export default function Timeline() {
         }}
       >
         <span style={{ fontSize: 10, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: 1 }}>
-          {expanded ? '▼' : '▲'} Timeline
+          {expanded ? 'v' : '^'} Timeline
         </span>
 
         <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
-          <Chip label={`${totalPkts.toLocaleString()} paquets`} color="#3b82f6" />
+          <Chip label={t('timeline_packets', totalPkts)} color="#3b82f6" />
           <Chip label={fmt(totalBytes)} color="#6366f1" />
-          {totalAlerts > 0 && <Chip label={`${totalAlerts} alertes`} color="#f59e0b" />}
+          {totalAlerts > 0 && <Chip label={t('timeline_alerts', totalAlerts)} color="#f59e0b" />}
         </div>
 
         <div style={{ marginLeft: 'auto', display: 'flex', gap: 6 }}>
@@ -173,7 +169,6 @@ export default function Timeline() {
         </div>
       </div>
 
-      {/* Chart */}
       {expanded && (
         <svg
           ref={svgRef}
@@ -181,7 +176,6 @@ export default function Timeline() {
         />
       )}
 
-      {/* Tooltip */}
       {tooltip && (
         <div style={{
           position: 'fixed', left: tooltip.x + 12, top: tooltip.y - 60,
@@ -190,10 +184,10 @@ export default function Timeline() {
           color: '#e2e8f0', pointerEvents: 'none', zIndex: 500,
         }}>
           <div style={{ fontWeight: 700, marginBottom: 3 }}>{fmtMinute(tooltip.d.minute)}</div>
-          <div>{tooltip.d.packets.toLocaleString()} paquets</div>
+          <div>{t('timeline_packets', tooltip.d.packets)}</div>
           <div style={{ color: '#64748b' }}>{fmt(tooltip.d.bytes)}</div>
           {tooltip.d.alerts > 0 && (
-            <div style={{ color: '#f59e0b', marginTop: 2 }}>⚠ {tooltip.d.alerts} alerte{tooltip.d.alerts > 1 ? 's' : ''}</div>
+            <div style={{ color: '#f59e0b', marginTop: 2 }}>! {t('timeline_alerts', tooltip.d.alerts)}</div>
           )}
         </div>
       )}

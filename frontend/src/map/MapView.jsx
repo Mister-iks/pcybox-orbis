@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import * as d3 from 'd3'
 import * as topojson from 'topojson-client'
+import { useT } from '../i18n'
 
 const STYLE = `
   @keyframes arcFlow {
@@ -78,6 +79,7 @@ function applyLabelCollision(g, k) {
 }
 
 export default function MapView({ nodes, onNodeClick }) {
+  const { t, lang } = useT()
   const svgRef    = useRef(null)
   const gRef      = useRef(null)
   const projRef   = useRef(null)
@@ -103,8 +105,8 @@ export default function MapView({ nodes, onNodeClick }) {
   useEffect(() => {
     if (!worldTopo || !userPos || !svgRef.current) return
     userPosRef.current = userPos
-    drawBase(worldTopo, userPos)
-  }, [worldTopo, userPos])
+    drawBase(worldTopo, userPos, t('map_you'))
+  }, [worldTopo, userPos, lang])
 
   useEffect(() => {
     if (!gRef.current || !projRef.current) return
@@ -142,7 +144,7 @@ export default function MapView({ nodes, onNodeClick }) {
     applyLabelCollision(g, k)
   }
 
-  function drawBase(topo, pos) {
+  function drawBase(topo, pos, youLabel) {
     const el  = svgRef.current
     const svg = d3.select(el)
     svg.selectAll('*').remove()
@@ -231,7 +233,7 @@ export default function MapView({ nodes, onNodeClick }) {
         .attr('data-ux', ux)
         .attr('x', ux + 10).attr('y', uy + 4)
         .attr('fill', '#93c5fd').attr('font-size', 11).attr('font-weight', '700')
-        .text('You')
+        .text(youLabel)
     }
 
     drawConnections(projection)
@@ -340,8 +342,8 @@ export default function MapView({ nodes, onNodeClick }) {
         background: '#1e293b', border: '1px solid #334155',
         borderRadius: 8, padding: '8px 14px', fontSize: 10, color: '#64748b',
       }}>
-        <span style={{ color: '#22c55e', fontWeight: 700 }}>{geoCount}</span> hôtes localisés
-        {noGeoCount > 0 && <span> · <span style={{ color: '#f59e0b' }}>{noGeoCount}</span> sans géo</span>}
+        <span style={{ color: '#22c55e', fontWeight: 700 }}>{t('map_located', geoCount)}</span>
+        {noGeoCount > 0 && <span> · <span style={{ color: '#f59e0b' }}>{noGeoCount}</span> {t('map_no_geo')}</span>}
       </div>
 
       {tooltip && (

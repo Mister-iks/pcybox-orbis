@@ -1,8 +1,9 @@
 import {
   Bell, Info, AlertTriangle, AlertCircle,
-  Globe, Cpu, WifiOff, Wifi,
-  Activity, Unlock, TrendingUp, Shield,
+  Globe, WifiOff, Wifi,
+  Activity, Unlock, TrendingUp,
 } from 'lucide-react'
+import { useT } from '../i18n'
 
 const SEVERITY_STYLES = {
   info:     { color: '#38bdf8', Icon: Info,          bg: '#0c2340' },
@@ -10,22 +11,14 @@ const SEVERITY_STYLES = {
   critical: { color: '#ef4444', Icon: AlertCircle,   bg: '#2d0000' },
 }
 
-const TYPE_META = {
-  NEW_HOST:           { label: 'Nouvel hôte',         Icon: Globe          },
-  SUSPICIOUS_PROCESS: { label: 'Processus suspect',   Icon: AlertTriangle  },
-  SUSPICIOUS_PORT:    { label: 'Port suspect',        Icon: Unlock         },
-  BEACON:             { label: 'Beacon C2',           Icon: Activity       },
-  VOLUME_SPIKE:       { label: 'Pic de trafic',       Icon: TrendingUp     },
-  NEW_LAN_DEVICE:     { label: 'Nouveau device',      Icon: Wifi           },
-  DEVICE_OFFLINE:     { label: 'Device hors ligne',   Icon: WifiOff        },
-}
-
-function timeAgo(iso) {
-  const diff = Math.floor((Date.now() - new Date(iso + 'Z')) / 1000)
-  if (diff < 5)   return "à l'instant"
-  if (diff < 60)  return `il y a ${diff}s`
-  if (diff < 3600) return `il y a ${Math.floor(diff / 60)}min`
-  return `il y a ${Math.floor(diff / 3600)}h`
+const TYPE_ICONS = {
+  NEW_HOST:           Globe,
+  SUSPICIOUS_PROCESS: AlertTriangle,
+  SUSPICIOUS_PORT:    Unlock,
+  BEACON:             Activity,
+  VOLUME_SPIKE:       TrendingUp,
+  NEW_LAN_DEVICE:     Wifi,
+  DEVICE_OFFLINE:     WifiOff,
 }
 
 export function AlertBell({ unread, onClick }) {
@@ -52,6 +45,7 @@ export function AlertBell({ unread, onClick }) {
 }
 
 export function AlertPanel({ alerts, onClose }) {
+  const { t } = useT()
   const warningCount  = alerts.filter(a => a.severity === 'warning').length
   const criticalCount = alerts.filter(a => a.severity === 'critical').length
   const infoCount     = alerts.filter(a => a.severity === 'info').length
@@ -70,8 +64,8 @@ export function AlertPanel({ alerts, onClose }) {
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
       }}>
         <div>
-          <span style={{ fontWeight: 700, fontSize: 13, color: '#f1f5f9' }}>Alertes</span>
-          <span style={{ fontSize: 11, color: '#64748b', marginLeft: 8 }}>{alerts.length} total</span>
+          <span style={{ fontWeight: 700, fontSize: 13, color: '#f1f5f9' }}>{t('alerts_title')}</span>
+          <span style={{ fontSize: 11, color: '#64748b', marginLeft: 8 }}>{alerts.length} {t('alerts_total')}</span>
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           {criticalCount > 0 && <Badge count={criticalCount} color="#ef4444" />}
@@ -86,7 +80,7 @@ export function AlertPanel({ alerts, onClose }) {
       <div style={{ overflowY: 'auto', flex: 1 }}>
         {alerts.length === 0 && (
           <div style={{ padding: 32, textAlign: 'center', color: '#64748b', fontSize: 12 }}>
-            Aucune alerte pour l'instant
+            {t('alerts_empty')}
           </div>
         )}
         {alerts.map(alert => <AlertRow key={alert.id} alert={alert} />)}
@@ -96,10 +90,11 @@ export function AlertPanel({ alerts, onClose }) {
 }
 
 function AlertRow({ alert }) {
-  const sev  = SEVERITY_STYLES[alert.severity] || SEVERITY_STYLES.info
-  const meta = TYPE_META[alert.type] || { label: alert.type, Icon: Info }
-  const TypeIcon = meta.Icon
+  const { t } = useT()
+  const sev      = SEVERITY_STYLES[alert.severity] || SEVERITY_STYLES.info
+  const TypeIcon = TYPE_ICONS[alert.type] || Info
   const SevIcon  = sev.Icon
+  const typeLabel = t(`alert_${alert.type}`) !== `alert_${alert.type}` ? t(`alert_${alert.type}`) : alert.type
 
   return (
     <div style={{
@@ -113,7 +108,7 @@ function AlertRow({ alert }) {
             <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 2 }}>
               <TypeIcon size={11} color={sev.color} />
               <span style={{ fontSize: 10, color: sev.color, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                {meta.label}
+                {typeLabel}
               </span>
             </div>
             <div style={{ fontSize: 11, color: '#e2e8f0', lineHeight: 1.4 }}>{alert.message}</div>
@@ -125,11 +120,19 @@ function AlertRow({ alert }) {
           </div>
         </div>
         <span style={{ fontSize: 9, color: '#475569', flexShrink: 0, marginTop: 2 }}>
-          {timeAgo(alert.timestamp)}
+          {timeAgo(alert.timestamp, t)}
         </span>
       </div>
     </div>
   )
+}
+
+function timeAgo(iso, t) {
+  const diff = Math.floor((Date.now() - new Date(iso + 'Z')) / 1000)
+  if (diff < 5)    return t('time_just_now')
+  if (diff < 60)   return t('time_seconds', diff)
+  if (diff < 3600) return t('time_minutes', Math.floor(diff / 60))
+  return t('time_hours', Math.floor(diff / 3600))
 }
 
 function Badge({ count, color }) {
@@ -158,9 +161,10 @@ export function AlertToasts({ alerts }) {
 }
 
 function Toast({ alert, index }) {
-  const sev  = SEVERITY_STYLES[alert.severity] || SEVERITY_STYLES.info
-  const meta = TYPE_META[alert.type] || { label: alert.type, Icon: Info }
-  const TypeIcon = meta.Icon
+  const { t } = useT()
+  const sev      = SEVERITY_STYLES[alert.severity] || SEVERITY_STYLES.info
+  const TypeIcon = TYPE_ICONS[alert.type] || Info
+  const typeLabel = t(`alert_${alert.type}`) !== `alert_${alert.type}` ? t(`alert_${alert.type}`) : alert.type
 
   return (
     <div style={{
@@ -174,7 +178,7 @@ function Toast({ alert, index }) {
     }}>
       <TypeIcon size={16} color={sev.color} />
       <div>
-        <div style={{ fontSize: 10, color: sev.color, fontWeight: 700 }}>{meta.label}</div>
+        <div style={{ fontSize: 10, color: sev.color, fontWeight: 700 }}>{typeLabel}</div>
         <div style={{ fontSize: 11, color: '#e2e8f0' }}>{alert.message}</div>
       </div>
     </div>

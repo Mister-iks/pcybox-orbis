@@ -1,16 +1,23 @@
 import { Search, X } from 'lucide-react'
+import { useT } from '../i18n'
 
-const CATEGORIES = [
-  { id: 'all',      label: 'Tout',     color: '#64748b' },
+const CATEGORY_IDS = [
+  { id: 'all',      color: '#64748b' },
   { id: 'safe',     label: 'HTTPS',    color: '#22c55e' },
   { id: 'tracking', label: 'Tracking', color: '#f59e0b' },
   { id: 'cdn',      label: 'CDN',      color: '#6366f1' },
   { id: 'dns',      label: 'DNS',      color: '#38bdf8' },
-  { id: 'unknown',  label: 'Inconnu',  color: '#94a3b8' },
+  { id: 'unknown',  color: '#94a3b8' },
 ]
 
 export default function SearchBar({ filter, onChange }) {
+  const { t } = useT()
   const { text, category } = filter
+
+  const categories = CATEGORY_IDS.map(c => ({
+    ...c,
+    label: c.label ?? (c.id === 'all' ? t('cat_all') : t('cat_unknown')),
+  }))
 
   return (
     <div style={{ padding: '8px 12px', borderBottom: '1px solid #334155' }}>
@@ -22,7 +29,7 @@ export default function SearchBar({ filter, onChange }) {
         <input
           value={text}
           onChange={e => onChange({ ...filter, text: e.target.value })}
-          placeholder="Rechercher hôte, IP, pays…"
+          placeholder={t('search_placeholder')}
           style={{
             width: '100%', boxSizing: 'border-box',
             background: '#0f172a', border: '1px solid #334155',
@@ -41,7 +48,7 @@ export default function SearchBar({ filter, onChange }) {
       </div>
 
       <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-        {CATEGORIES.map(c => (
+        {categories.map(c => (
           <button key={c.id} onClick={() => onChange({ ...filter, category: c.id })} style={{
             background: category === c.id ? c.color + '22' : 'transparent',
             border: `1px solid ${category === c.id ? c.color : '#334155'}`,
