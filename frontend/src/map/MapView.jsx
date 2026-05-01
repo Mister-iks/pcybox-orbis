@@ -2,9 +2,6 @@ import { useEffect, useRef, useState } from 'react'
 import * as d3 from 'd3'
 import * as topojson from 'topojson-client'
 
-// Bundled locally — no CDN dependency
-const WORLD_URL = '/countries-110m.json'
-
 const STYLE = `
   @keyframes arcFlow {
     from { stroke-dashoffset: 1; }
@@ -92,7 +89,10 @@ export default function MapView({ nodes, onNodeClick }) {
   const [tooltip,   setTooltip]   = useState(null)
 
   useEffect(() => {
-    fetch(WORLD_URL).then(r => r.json()).then(setWorldTopo)
+    const worldUrl = window.location.protocol === 'file:'
+      ? new URL('countries-110m.json', window.location.href).href
+      : '/countries-110m.json'
+    fetch(worldUrl).then(r => r.json()).then(setWorldTopo)
     navigator.geolocation?.getCurrentPosition(
       p => setUserPos([p.coords.longitude, p.coords.latitude]),
       () => setUserPos([2.35, 48.85])
