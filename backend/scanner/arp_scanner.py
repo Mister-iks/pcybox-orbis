@@ -111,7 +111,6 @@ def _scan_subnet(subnet: str, timeout: int = 2) -> list[Device]:
             hostname=hostname,
             online=True,
             color=DEVICE_TYPE_COLORS.get(device_type, "#64748b"),
-            icon=DEVICE_TYPE_ICONS.get(device_type, "❓"),
         ))
 
     return devices
