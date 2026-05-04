@@ -16,9 +16,11 @@ from api.main import app  # noqa: E402
 import uvicorn             # noqa: E402
 
 if __name__ == '__main__':
+    # Electron bundles freeze the app; bind locally. Docker/dev default to all interfaces.
+    default_bind = '127.0.0.1' if getattr(sys, 'frozen', False) else '0.0.0.0'
     uvicorn.run(
         app,
-        host=os.environ.get('ORBIS_BIND', '127.0.0.1'),
-        port=8000,
+        host=os.environ.get('ORBIS_BIND', default_bind),
+        port=int(os.environ.get('ORBIS_PORT', '8000')),
         log_level='warning',
     )

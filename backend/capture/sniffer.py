@@ -1,5 +1,6 @@
 import asyncio
 import socket
+import time
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Callable, Optional
@@ -102,14 +103,21 @@ class PacketSniffer:
 
     def start(self) -> None:
         if not SCAPY_AVAILABLE:
-            raise RuntimeError("scapy is not installed. Run: pip install scapy")
+            print("[sniffer] scapy not available - packet capture disabled", flush=True)
+            return
         self._running = True
-        self._sniffer = AsyncSniffer(
-            filter="ip",
-            prn=self._process_packet,
-            store=False,
-        )
-        self._sniffer.start()
+        try:
+            self._sniffer = AsyncSniffer(
+                filter="ip",
+                prn=self._process_packet,
+                store=False,
+            )
+            self._sniffer.start()
+            # Keep thread alive so the daemon thread doesn't exit prematurely
+            while self._running:
+                time.sleep(1)
+        except Exception as exc:
+            print(f"[sniffer] failed to start: {exc}", flush=True)
 
     def stop(self) -> None:
         self._running = False

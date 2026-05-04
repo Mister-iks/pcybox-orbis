@@ -2,6 +2,7 @@ import asyncio
 import json
 import threading
 import time
+from contextlib import asynccontextmanager
 from datetime import datetime
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
@@ -13,15 +14,6 @@ from resolver.dns_geo import enrich_ip
 from scanner.arp_scanner import ARPScanner, Device
 from detection.anomaly import AnomalyDetector
 import storage.db as db
-
-app = FastAPI(title="PCYBOX Orbis API")
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
 
 # ── State ─────────────────────────────────────────────────────────────────────
 nodes: dict[str, dict] = {}
@@ -116,7 +108,7 @@ async def _handle_packet(pkt: Packet) -> None:
     db.accumulate(minute, category.category, pkt.size)
 
     # Anomaly detection
-    loop = asyncio.get_event_loop()
+    loop = asyncio.get_running_loop()
     alerts = await loop.run_in_executor(None, detector.analyze_packet, pkt, geo)
     for alert in alerts:
         if alert.node_id and alert.node_id in nodes:
@@ -167,7 +159,7 @@ async def _handle_device(device: Device, is_new: bool) -> None:
         "dashed": True,
     }
 
-    loop = asyncio.get_event_loop()
+    loop = asyncio.get_running_loop()
     alerts = await loop.run_in_executor(None, detector.analyze_device, device, is_new)
     for alert in alerts:
         if alert.node_id and alert.node_id in lan_devices:
@@ -206,10 +198,9 @@ def _cleanup_loop() -> None:
 
 # ── Startup ──────────────────────────────────────────────────────────────────
 
-@app.on_event("startup")
-async def startup() -> None:
+async def _startup() -> None:
     global _loop
-    _loop = asyncio.get_event_loop()
+    _loop = asyncio.get_running_loop()
 
     nodes["local"] = {
         "id": "local", "label": "This Device", "ip": "local",
@@ -225,6 +216,22 @@ async def startup() -> None:
 
     threading.Thread(target=_flush_loop, daemon=True).start()
     threading.Thread(target=_cleanup_loop, daemon=True).start()
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    await _startup()
+    yield
+
+
+app = FastAPI(title="PCYBOX Orbis API", lifespan=lifespan)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 # ── REST endpoints ────────────────────────────────────────────────────────────
@@ -246,7 +253,7 @@ async def get_alerts() -> dict:
 
 @app.get("/timeline")
 async def get_timeline(minutes: int = 60) -> dict:
-    loop = asyncio.get_event_loop()
+    loop = asyncio.get_running_loop()
     data = await loop.run_in_executor(None, db.get_timeline, minutes)
     return {"timeline": data}
 
