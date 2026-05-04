@@ -1,4 +1,4 @@
-// Minimal preload — contextIsolation keeps renderer sandboxed
+// Minimal preload  contextIsolation keeps renderer sandboxed
 const { contextBridge } = require('electron')
 
 contextBridge.exposeInMainWorld('pcyboxOrbis', {

@@ -21,7 +21,7 @@ DB_PATH = _get_db_path()
 _conn: sqlite3.Connection | None = None
 _conn_lock = threading.Lock()
 
-# In-memory accumulator — flushed every N seconds
+# In-memory accumulator  flushed every N seconds
 _pending: dict[tuple, list] = defaultdict(lambda: [0, 0])  # (minute, category) -> [pkts, bytes]
 _pending_lock = threading.Lock()
 

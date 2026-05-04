@@ -21,7 +21,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Backend source
 COPY backend/ ./backend/
 
-# Compiled React app — served as static files by FastAPI
+# Compiled React app  served as static files by FastAPI
 COPY --from=frontend-builder /build/dist ./frontend_dist/
 
 EXPOSE 8000

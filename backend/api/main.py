@@ -273,7 +273,7 @@ async def websocket_endpoint(websocket: WebSocket) -> None:
             connected_clients.remove(websocket)
 
 
-# ── Serve React build (Docker / non-Electron) — must be last ─────────────────
+# ── Serve React build (Docker / non-Electron)  must be last ─────────────────
 from pathlib import Path
 from fastapi.staticfiles import StaticFiles
 

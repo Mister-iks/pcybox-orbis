@@ -1,7 +1,7 @@
 services:
   orbis:
     build: .
-    # Host networking — Scapy captures traffic on the real host interfaces.
+    # Host networking  Scapy captures traffic on the real host interfaces.
     # Linux only. Docker Desktop (Mac/Windows) uses a VM and won't capture host traffic.
     network_mode: host
     cap_add:
@@ -10,7 +10,7 @@ services:
     environment:
       - ORBIS_BIND=0.0.0.0
     volumes:
-      # data/GeoLite2-City.mmdb  — optional, for offline geolocation
-      # data/netgraph.db         — created automatically at runtime
+      # data/GeoLite2-City.mmdb   optional, for offline geolocation
+      # data/netgraph.db          created automatically at runtime
       - ./data:/app/data
     restart: unless-stopped

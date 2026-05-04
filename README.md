@@ -42,7 +42,7 @@ See every connection your computer makes - who it talks to, where they are, and 
 
 Requires administrator rights for network capture. Npcap is installed automatically on first launch.
 
-> **Windows SmartScreen warning?** Click **"More info"** → **"Run anyway"**. The app is not yet code-signed — this is expected for an indie release.
+> **Windows SmartScreen warning?** Click **"More info"** → **"Run anyway"**. The app is not yet code-signed  this is expected for an indie release.
 
 ## Stack
 
@@ -57,7 +57,7 @@ Requires administrator rights for network capture. Npcap is installed automatica
 ## Docker (Linux)
 
 The Docker deployment is for Linux users who want to run Orbis without installing anything beyond Docker.
-Packet capture works via `network_mode: host` — the container sees real host traffic.
+Packet capture works via `network_mode: host`  the container sees real host traffic.
 
 > **Note:** Docker Desktop on Mac/Windows runs inside a VM and cannot capture traffic from the Windows/macOS host. Use the Electron installer on those platforms.
 

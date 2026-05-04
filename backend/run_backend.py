@@ -1,5 +1,5 @@
 """
-Entry point for PyInstaller — launched by Electron as a child process.
+Entry point for PyInstaller  launched by Electron as a child process.
 Pass `app` as an object (not a string) so PyInstaller traces the full
 import chain and bundles api, capture, classifier, etc. automatically.
 """
@@ -11,7 +11,7 @@ if getattr(sys, 'frozen', False):
     if bundle_dir not in sys.path:
         sys.path.insert(0, bundle_dir)
 
-# Direct import — PyInstaller follows this chain and includes all backend modules
+# Direct import  PyInstaller follows this chain and includes all backend modules
 from api.main import app  # noqa: E402
 import uvicorn             # noqa: E402
 

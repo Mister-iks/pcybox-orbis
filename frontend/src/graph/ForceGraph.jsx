@@ -6,9 +6,9 @@ export default function ForceGraph({ nodes, edges, lanDevices, alertedNodes = ne
   const svgRef   = useRef(null)
   const nodeRef  = useRef(null)
   const linkRef  = useRef(null)
-  const posCache = useRef({})   // { nodeId: {x, y, fx, fy} } — persists across renders
+  const posCache = useRef({})   // { nodeId: {x, y, fx, fy} }  persists across renders
 
-  // ── Full simulation — reruns when data changes ───────────────────────────
+  // ── Full simulation  reruns when data changes ───────────────────────────
   useEffect(() => {
     const svg = d3.select(svgRef.current)
     svg.selectAll('*').remove()
@@ -32,7 +32,7 @@ export default function ForceGraph({ nodes, edges, lanDevices, alertedNodes = ne
     const allNodes = [...Object.values(nodes), ...Object.values(lanDevices)]
     const allEdges = Object.values(edges)
 
-    // Restore cached positions — locked nodes won't move at all
+    // Restore cached positions  locked nodes won't move at all
     let hasNew = false
     allNodes.forEach(n => {
       const c = posCache.current[n.id]

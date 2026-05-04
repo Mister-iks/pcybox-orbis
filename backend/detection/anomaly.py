@@ -36,6 +36,28 @@ BEACON_THRESHOLD = 30      # packets/min to same IP → suspicious beacon
 VOLUME_SPIKE_FACTOR = 8    # 8x average bytes → spike
 COOLDOWN = 60              # seconds before re-alerting the same key
 
+# Known legitimate IPs that contact frequently — never flag as beaconing
+BEACON_WHITELIST = {
+    # DNS resolvers
+    "1.1.1.1",        # Cloudflare
+    "1.0.0.1",        # Cloudflare secondary
+    "8.8.8.8",        # Google DNS
+    "8.8.4.4",        # Google DNS secondary
+    "9.9.9.9",        # Quad9
+    "149.112.112.112", # Quad9 secondary
+    "208.67.222.222", # OpenDNS
+    "208.67.220.220", # OpenDNS secondary
+    "4.2.2.1",        # Level3
+    "4.2.2.2",        # Level3
+    # NTP
+    "216.239.35.0",   # Google NTP
+    "216.239.35.4",   # Google NTP
+    "216.239.35.8",   # Google NTP
+    "216.239.35.12",  # Google NTP
+    "129.6.15.28",    # NIST NTP
+    "129.6.15.29",    # NIST NTP
+}
+
 
 # ── Alert model ──────────────────────────────────────────────────────────────
 
@@ -174,6 +196,8 @@ class AnomalyDetector:
         )]
 
     def _check_beacon(self, remote_ip: str, geo: dict) -> list[Alert]:
+        if remote_ip in BEACON_WHITELIST:
+            return []
         now = time.time()
         dq = self._pkt_times[remote_ip]
         dq.append(now)

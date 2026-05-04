@@ -1,4 +1,4 @@
-# Partial OUI table — first 6 hex chars of MAC (uppercase, no colons)
+# Partial OUI table  first 6 hex chars of MAC (uppercase, no colons)
 OUI_TABLE: dict[str, tuple[str, str]] = {
     # Apple
     "A4C138": ("Apple", "phone"), "F0DCE2": ("Apple", "phone"),

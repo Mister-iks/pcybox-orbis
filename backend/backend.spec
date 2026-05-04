@@ -11,7 +11,7 @@ block_cipher = None
 
 a = Analysis(
     ['run_backend.py'],
-    pathex=['.'],           # backend/ — so api.*, capture.*, etc. resolve
+    pathex=['.'],           # backend/  so api.*, capture.*, etc. resolve
     binaries=scapy_binaries,
     datas=scapy_datas,
     hiddenimports=(

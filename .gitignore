@@ -37,3 +37,6 @@ data/*.db-wal
 
 # Claude Code internal
 .claude/
+
+# Local feedback notes  never push
+FEEDBACK_LOCAL.md

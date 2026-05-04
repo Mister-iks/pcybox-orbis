@@ -153,7 +153,7 @@ function launchBackend() {
     app.quit(); return
   }
 
-  // Free port before launching — handles zombies from crashed sessions
+  // Free port before launching  handles zombies from crashed sessions
   killPort(BACKEND_PORT)
 
   const env = Object.assign({}, process.env)
@@ -166,7 +166,7 @@ function launchBackend() {
     app.quit()
   })
   backendProc.on('exit', (code) => {
-    if (isQuitting) return      // normal shutdown — don't alert
+    if (isQuitting) return      // normal shutdown  don't alert
     if (mainWindow) {
       dialog.showErrorBox('PCYBOX Orbis', `Backend arrêté (code ${code}).`)
       app.quit()
