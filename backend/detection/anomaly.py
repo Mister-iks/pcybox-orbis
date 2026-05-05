@@ -37,6 +37,22 @@ VOLUME_SPIKE_FACTOR = 8    # 8x average bytes → spike
 COOLDOWN = 60              # seconds before re-alerting the same key
 
 # Known legitimate IPs that contact frequently — never flag as beaconing
+# Legitimate apps known to use mic/camera + network (calls, meetings)
+MEDIA_WHITELIST = {
+    "discord.exe", "discord",
+    "teams.exe", "ms-teams.exe", "teams",
+    "zoom.exe", "zoom",
+    "skype.exe", "skype",
+    "slack.exe", "slack",
+    "webex.exe", "webex",
+    "chrome.exe", "chrome",
+    "firefox.exe", "firefox",
+    "msedge.exe", "msedge",
+    "brave.exe", "brave",
+    "opera.exe", "opera",
+    "facetime", "whatsapp.exe", "whatsapp",
+}
+
 BEACON_WHITELIST = {
     # DNS resolvers
     "1.1.1.1",        # Cloudflare
@@ -93,6 +109,12 @@ class AnomalyDetector:
         self._host_bytes_window: dict[str, deque] = defaultdict(lambda: deque(maxlen=60))
         self._cooldowns: dict[str, float] = {}
         self.history: list[dict] = []
+        self._mic_procs: set[str] = set()
+        self._cam_procs: set[str] = set()
+
+    def update_media_state(self, mic: list[str], camera: list[str]) -> None:
+        self._mic_procs = {p.lower() for p in mic}
+        self._cam_procs = {p.lower() for p in camera}
 
     # ── Public API ───────────────────────────────────────────────────────────
 
@@ -108,6 +130,7 @@ class AnomalyDetector:
         alerts += self._check_suspicious_port(pkt, remote_ip, geo)
         alerts += self._check_beacon(remote_ip, geo)
         alerts += self._check_volume_spike(remote_ip, pkt.size, geo)
+        alerts += self._check_media_exfil(pkt, remote_ip, geo)
 
         self._record(alerts)
         return alerts
@@ -234,6 +257,29 @@ class AnomalyDetector:
             message=f"Pic de trafic vers {label} ({size // 1024} KB en un paquet)",
             node_id=remote_ip,
             details={"ip": remote_ip, "size": size, "avg": int(avg)},
+        )]
+
+    def _check_media_exfil(self, pkt: Packet, remote_ip: str, geo: dict) -> list[Alert]:
+        if not pkt.process_name:
+            return []
+        proc = pkt.process_name.lower()
+        if proc not in self._mic_procs and proc not in self._cam_procs:
+            return []
+        if proc in MEDIA_WHITELIST:
+            return []
+        if pkt.direction != "out":
+            return []
+        key = f"media_exfil:{proc}:{remote_ip}"
+        if not self._cooldown_ok(key, cooldown=300):
+            return []
+        device = "microphone" if proc in self._mic_procs else "camera"
+        label = geo.get("hostname") or remote_ip
+        return [Alert(
+            type="MEDIA_EXFIL",
+            severity="critical",
+            message=f"Suspected {device} exfiltration: {pkt.process_name} → {label}",
+            node_id=remote_ip,
+            details={"process": pkt.process_name, "device": device, "ip": remote_ip, "org": geo.get("org", "")},
         )]
 
     # ── Helpers ──────────────────────────────────────────────────────────────

@@ -187,6 +187,7 @@ async def _handle_device(device: Device, is_new: bool) -> None:
 def _on_media_change(state: MediaState) -> None:
     global _media_state
     _media_state = {"mic": state.mic, "camera": state.camera}
+    detector.update_media_state(state.mic, state.camera)
     if _loop:
         asyncio.run_coroutine_threadsafe(
             broadcast({"type": "media", "mic": state.mic, "camera": state.camera}),
