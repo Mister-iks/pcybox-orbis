@@ -13,6 +13,7 @@ export function useWebSocket(url) {
   const [bandwidth, setBandwidth] = useState([])
   const [capturing, setCapturing] = useState(true)
   const [portFilter, setPortFilter] = useState([])
+  const [media, setMedia] = useState({ mic: [], camera: [] })
   const bwRef = useRef({})  // { secondTimestamp: totalBytes }
 
   // Tick every second: build bandwidth array from buckets
@@ -46,6 +47,7 @@ export function useWebSocket(url) {
         const msg = JSON.parse(evt.data)
 
         if (msg.type === 'init') {
+          if (msg.media) setMedia(msg.media)
           const nodeMap = {}, edgeMap = {}, deviceMap = {}
           msg.nodes.forEach(n => {
             if (n.category === 'lan_device') deviceMap[n.id] = n
@@ -80,6 +82,10 @@ export function useWebSocket(url) {
         if (msg.type === 'capture_status') {
           setCapturing(msg.capturing)
           if (msg.ports !== undefined) setPortFilter(msg.ports)
+        }
+
+        if (msg.type === 'media') {
+          setMedia({ mic: msg.mic || [], camera: msg.camera || [] })
         }
 
         if (msg.type === 'reset') {
@@ -122,5 +128,5 @@ export function useWebSocket(url) {
     setPortFilter(data.ports)
   }
 
-  return { nodes, edges, lanDevices, packets, alerts, unread, clearUnread, status, bandwidth, capturing, toggleCapture, portFilter, updatePortFilter }
+  return { nodes, edges, lanDevices, packets, alerts, unread, clearUnread, status, bandwidth, capturing, toggleCapture, portFilter, updatePortFilter, media }
 }

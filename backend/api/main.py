@@ -9,6 +9,7 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 
 from capture.sniffer import Packet, PacketSniffer
+from capture.media_monitor import MediaMonitor, MediaState
 from classifier.traffic import classify
 from resolver.dns_geo import enrich_ip
 from scanner.arp_scanner import ARPScanner, Device
@@ -27,6 +28,7 @@ _sniffer: PacketSniffer | None = None
 _scanner: ARPScanner | None = None
 _capturing: bool = True
 _port_filter: list[int] = []
+_media_state: dict = {"mic": [], "camera": []}
 
 
 # ── Broadcast ────────────────────────────────────────────────────────────────
@@ -182,6 +184,16 @@ async def _handle_device(device: Device, is_new: bool) -> None:
 
 # ── Background flush thread ──────────────────────────────────────────────────
 
+def _on_media_change(state: MediaState) -> None:
+    global _media_state
+    _media_state = {"mic": state.mic, "camera": state.camera}
+    if _loop:
+        asyncio.run_coroutine_threadsafe(
+            broadcast({"type": "media", "mic": state.mic, "camera": state.camera}),
+            _loop,
+        )
+
+
 def _flush_loop() -> None:
     while True:
         time.sleep(10)
@@ -234,6 +246,9 @@ async def _startup() -> None:
     threading.Thread(target=_flush_loop, daemon=True).start()
     threading.Thread(target=_cleanup_loop, daemon=True).start()
 
+    media = MediaMonitor(callback=_on_media_change, interval=3)
+    threading.Thread(target=media.start, daemon=True).start()
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -267,6 +282,10 @@ async def get_devices() -> dict:
 @app.get("/alerts")
 async def get_alerts() -> dict:
     return {"alerts": detector.history[-100:]}
+
+@app.get("/media")
+async def get_media() -> dict:
+    return _media_state
 
 @app.get("/capture/status")
 async def get_capture_status() -> dict:
@@ -330,6 +349,7 @@ async def websocket_endpoint(websocket: WebSocket) -> None:
         "nodes": list(nodes.values()) + list(lan_devices.values()),
         "edges": list(edges.values()),
         "alerts": detector.history[-50:],
+        "media": _media_state,
     }))
 
     try:

@@ -1,5 +1,5 @@
 import { useState, useMemo, useRef, useEffect } from 'react'
-import { Hexagon, Globe, Wifi, Smartphone, Monitor, Cpu, ShieldCheck, Radio, Zap, HelpCircle, AlertTriangle, Square, Play, Filter } from 'lucide-react'
+import { Hexagon, Globe, Wifi, Smartphone, Monitor, Cpu, ShieldCheck, Radio, Zap, HelpCircle, AlertTriangle, Square, Play, Filter, Mic, Camera } from 'lucide-react'
 import ForceGraph from './graph/ForceGraph'
 import MapView from './map/MapView'
 import Sidebar from './components/Sidebar'
@@ -11,7 +11,7 @@ import { WS_URL } from './api'
 import { useT } from './i18n'
 
 export default function App() {
-  const { nodes, edges, lanDevices, packets, alerts, unread, clearUnread, status, bandwidth, capturing, toggleCapture, portFilter, updatePortFilter } = useWebSocket(WS_URL)
+  const { nodes, edges, lanDevices, packets, alerts, unread, clearUnread, status, bandwidth, capturing, toggleCapture, portFilter, updatePortFilter, media } = useWebSocket(WS_URL)
   const [selected, setSelected] = useState(null)
   const [view, setView] = useState('graph')
   const [showAlerts, setShowAlerts] = useState(false)
@@ -96,6 +96,7 @@ export default function App() {
             position: 'absolute', top: 16, right: 16,
             display: 'flex', alignItems: 'center', gap: 8,
           }}>
+            <MediaBadge media={media} />
             <LangToggle />
             <ViewToggle view={view} onChange={setView} />
             <ProcessFilter excluded={excludedProcesses} onChange={setExcludedProcesses} nodes={nodes} />
@@ -116,6 +117,35 @@ export default function App() {
 
         <Timeline />
       </div>
+    </div>
+  )
+}
+
+function MediaBadge({ media }) {
+  const { t } = useT()
+  const micActive = media.mic.length > 0
+  const camActive = media.camera.length > 0
+  if (!micActive && !camActive) return null
+
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: 6,
+      background: '#2d1b1b', border: '1px solid #ef4444',
+      borderRadius: 20, padding: '5px 12px',
+    }}>
+      {micActive && (
+        <div title={media.mic.join(', ')} style={{ display: 'flex', alignItems: 'center', gap: 4, cursor: 'default' }}>
+          <Mic size={11} color="#f87171" />
+          <span style={{ fontSize: 10, color: '#fca5a5' }}>{media.mic[0]}</span>
+        </div>
+      )}
+      {micActive && camActive && <span style={{ color: '#4b1f1f', fontSize: 10 }}>|</span>}
+      {camActive && (
+        <div title={media.camera.join(', ')} style={{ display: 'flex', alignItems: 'center', gap: 4, cursor: 'default' }}>
+          <Camera size={11} color="#f87171" />
+          <span style={{ fontSize: 10, color: '#fca5a5' }}>{media.camera[0]}</span>
+        </div>
+      )}
     </div>
   )
 }

@@ -13,6 +13,7 @@ export default defineConfig({
       '/alerts':   { target: 'http://localhost:8000' },
       '/timeline': { target: 'http://localhost:8000' },
       '/capture':  { target: 'http://localhost:8000' },
+      '/media':    { target: 'http://localhost:8000' },
     },
   },
 })
