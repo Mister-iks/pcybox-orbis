@@ -1,3 +1,4 @@
+import { useState, useEffect, useRef } from 'react'
 import {
   Bell, Info, AlertTriangle, AlertCircle,
   Globe, WifiOff, Wifi,
@@ -146,24 +147,59 @@ function Badge({ count, color }) {
   )
 }
 
+const TOAST_DURATION = 5000  // ms before fade starts
+const TOAST_FADE     = 800   // ms fade duration
+
 export function AlertToasts({ alerts }) {
-  const visible = alerts.filter(a => a.severity !== 'info').slice(0, 2)
+  const [visible, setVisible] = useState([])  // [{ alert, opacity, dying }]
+  const timers = useRef({})
+  const prevIds = useRef(new Set())
+
+  useEffect(() => {
+    const incoming = alerts.filter(a => a.severity !== 'info').slice(0, 10)
+    const newOnes = incoming.filter(a => !prevIds.current.has(a.id))
+    if (!newOnes.length) return
+
+    newOnes.forEach(a => prevIds.current.add(a.id))
+
+    setVisible(prev => {
+      const next = [...newOnes.map(a => ({ alert: a, opacity: 1, dying: false })), ...prev].slice(0, 5)
+      return next
+    })
+
+    newOnes.forEach(a => {
+      timers.current[a.id] = setTimeout(() => {
+        setVisible(prev => prev.map(t => t.alert.id === a.id ? { ...t, dying: true } : t))
+        setTimeout(() => {
+          setVisible(prev => prev.filter(t => t.alert.id !== a.id))
+          delete timers.current[a.id]
+        }, TOAST_FADE)
+      }, TOAST_DURATION)
+    })
+  }, [alerts])
+
+  useEffect(() => () => Object.values(timers.current).forEach(clearTimeout), [])
+
   return (
     <div style={{
       position: 'absolute', bottom: 16, left: 16,
       display: 'flex', flexDirection: 'column-reverse', gap: 4,
       pointerEvents: 'none', zIndex: 300, maxWidth: 260,
     }}>
-      {visible.map((alert, i) => <Toast key={alert.id} alert={alert} index={i} />)}
+      {visible.map(({ alert, dying }, i) => (
+        <Toast key={alert.id} alert={alert} index={i} dying={dying} />
+      ))}
     </div>
   )
 }
 
-function Toast({ alert, index }) {
+function Toast({ alert, index, dying }) {
   const { t } = useT()
   const sev      = SEVERITY_STYLES[alert.severity] || SEVERITY_STYLES.info
   const TypeIcon = TYPE_ICONS[alert.type] || Info
   const typeLabel = t(`alert_${alert.type}`) !== `alert_${alert.type}` ? t(`alert_${alert.type}`) : alert.type
+
+  const baseOpacity = Math.max(0, 1 - index * 0.2)
 
   return (
     <div style={{
@@ -171,8 +207,10 @@ function Toast({ alert, index }) {
       borderLeft: `3px solid ${sev.color}`,
       borderRadius: 6, padding: '5px 10px',
       display: 'flex', alignItems: 'center', gap: 8,
-      opacity: 1 - index * 0.3,
-      transform: `scale(${1 - index * 0.03})`,
+      opacity: dying ? 0 : baseOpacity,
+      transform: `scale(${1 - index * 0.02})`,
+      transition: dying ? `opacity ${TOAST_FADE}ms ease` : 'opacity 0.3s ease',
+      transformOrigin: 'bottom left',
     }}>
       <TypeIcon size={12} color={sev.color} style={{ flexShrink: 0 }} />
       <div style={{ minWidth: 0 }}>
