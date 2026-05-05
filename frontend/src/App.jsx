@@ -1,5 +1,5 @@
 import { useState, useMemo, useRef, useEffect } from 'react'
-import { Hexagon, Globe, Wifi, Smartphone, Monitor, Cpu, ShieldCheck, Radio, Zap, HelpCircle, AlertTriangle, Square, Play, Filter, Mic, Camera } from 'lucide-react'
+import { Hexagon, Globe, Wifi, Smartphone, Monitor, Cpu, ShieldCheck, Radio, Zap, HelpCircle, AlertTriangle, Square, Play, Filter, Mic, Camera, Download } from 'lucide-react'
 import ForceGraph from './graph/ForceGraph'
 import MapView from './map/MapView'
 import Sidebar from './components/Sidebar'
@@ -99,6 +99,7 @@ export default function App() {
             <MediaBadge media={media} />
             <LangToggle />
             <ViewToggle view={view} onChange={setView} />
+            <ExportButton nodes={nodes} edges={edges} lanDevices={lanDevices} alerts={alerts} />
             <ProcessFilter excluded={excludedProcesses} onChange={setExcludedProcesses} nodes={nodes} />
             <PortFilter ports={portFilter} onUpdate={updatePortFilter} />
             <CaptureToggle capturing={capturing} onToggle={toggleCapture} />
@@ -117,6 +118,113 @@ export default function App() {
 
         <Timeline />
       </div>
+    </div>
+  )
+}
+
+function downloadFile(content, filename) {
+  const a = document.createElement('a')
+  a.href = URL.createObjectURL(new Blob([content], { type: 'text/plain' }))
+  a.download = filename
+  a.click()
+  URL.revokeObjectURL(a.href)
+}
+
+function toCSV(rows, cols) {
+  const header = cols.join(',')
+  const lines = rows.map(r => cols.map(c => {
+    const v = r[c] ?? ''
+    const s = typeof v === 'object' ? JSON.stringify(v) : String(v)
+    return s.includes(',') || s.includes('"') || s.includes('\n')
+      ? `"${s.replace(/"/g, '""')}"` : s
+  }).join(','))
+  return [header, ...lines].join('\n')
+}
+
+function ExportButton({ nodes, edges, lanDevices, alerts }) {
+  const { t } = useT()
+  const [open, setOpen] = useState(false)
+  const ref = useRef(null)
+
+  useEffect(() => {
+    function onClickOutside(e) {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false)
+    }
+    document.addEventListener('mousedown', onClickOutside)
+    return () => document.removeEventListener('mousedown', onClickOutside)
+  }, [])
+
+  const stamp = () => new Date().toISOString().slice(0, 16).replace(':', '-')
+
+  function exportGraphJSON() {
+    const data = {
+      exported_at: new Date().toISOString(),
+      nodes: [...Object.values(nodes), ...Object.values(lanDevices)],
+      edges: Object.values(edges),
+    }
+    downloadFile(JSON.stringify(data, null, 2), `orbis-graph-${stamp()}.json`)
+    setOpen(false)
+  }
+
+  function exportGraphCSV() {
+    const allNodes = [...Object.values(nodes), ...Object.values(lanDevices)]
+    const cols = ['id', 'label', 'ip', 'category', 'country', 'city', 'org', 'bytes', 'packets']
+    downloadFile(toCSV(allNodes, cols), `orbis-graph-${stamp()}.csv`)
+    setOpen(false)
+  }
+
+  function exportAlertsJSON() {
+    downloadFile(JSON.stringify(alerts, null, 2), `orbis-alerts-${stamp()}.json`)
+    setOpen(false)
+  }
+
+  function exportAlertsCSV() {
+    const cols = ['id', 'type', 'severity', 'message', 'node_id', 'timestamp']
+    downloadFile(toCSV(alerts, cols), `orbis-alerts-${stamp()}.csv`)
+    setOpen(false)
+  }
+
+  const items = [
+    { label: t('export_graph_json'),  action: exportGraphJSON  },
+    { label: t('export_graph_csv'),   action: exportGraphCSV   },
+    { label: t('export_alerts_json'), action: exportAlertsJSON },
+    { label: t('export_alerts_csv'),  action: exportAlertsCSV  },
+  ]
+
+  return (
+    <div ref={ref} style={{ position: 'relative' }}>
+      <button onClick={() => setOpen(v => !v)} style={{
+        display: 'flex', alignItems: 'center', gap: 6,
+        background: '#1e293b', border: '1px solid #334155',
+        borderRadius: 20, padding: '5px 14px',
+        cursor: 'pointer', color: '#64748b',
+        fontSize: 11, fontWeight: 600, transition: 'all 0.15s',
+      }}>
+        <Download size={11} />
+        {t('export_btn')}
+      </button>
+
+      {open && (
+        <div style={{
+          position: 'absolute', top: '110%', right: 0, zIndex: 100,
+          background: '#1e293b', border: '1px solid #334155',
+          borderRadius: 10, overflow: 'hidden',
+          boxShadow: '0 8px 24px rgba(0,0,0,0.4)', minWidth: 180,
+        }}>
+          {items.map(({ label, action }) => (
+            <button key={label} onClick={action} style={{
+              display: 'block', width: '100%', textAlign: 'left',
+              background: 'none', border: 'none', borderBottom: '1px solid #0f172a',
+              padding: '9px 14px', color: '#e2e8f0',
+              fontSize: 11, cursor: 'pointer',
+            }}
+            onMouseEnter={e => e.target.style.background = '#334155'}
+            onMouseLeave={e => e.target.style.background = 'none'}>
+              {label}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

@@ -92,6 +92,13 @@ const en = {
   port_placeholder: 'Add port (e.g. 443)',
   port_invalid: 'Invalid port',
 
+  // Export
+  export_btn: 'Export',
+  export_graph_json: 'Graph (JSON)',
+  export_graph_csv: 'Graph (CSV)',
+  export_alerts_json: 'Alerts (JSON)',
+  export_alerts_csv: 'Alerts (CSV)',
+
   // Process filter
   process_filter: 'Apps',
   process_filter_hint: 'Click to hide app from graph',
@@ -207,6 +214,13 @@ const fr = {
   port_all: 'Tous les ports',
   port_placeholder: 'Ajouter un port (ex: 443)',
   port_invalid: 'Port invalide',
+
+  // Export
+  export_btn: 'Exporter',
+  export_graph_json: 'Graphe (JSON)',
+  export_graph_csv: 'Graphe (CSV)',
+  export_alerts_json: 'Alertes (JSON)',
+  export_alerts_csv: 'Alertes (CSV)',
 
   // Process filter
   process_filter: 'Apps',
