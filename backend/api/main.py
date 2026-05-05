@@ -26,6 +26,7 @@ _loop: asyncio.AbstractEventLoop | None = None
 _sniffer: PacketSniffer | None = None
 _scanner: ARPScanner | None = None
 _capturing: bool = True
+_port_filter: list[int] = []
 
 
 # ── Broadcast ────────────────────────────────────────────────────────────────
@@ -203,7 +204,7 @@ def _cleanup_loop() -> None:
 
 def _start_capture() -> None:
     global _sniffer, _scanner, _capturing
-    _sniffer = PacketSniffer(callback=on_packet)
+    _sniffer = PacketSniffer(callback=on_packet, ports=_port_filter)
     threading.Thread(target=_sniffer.start, daemon=True).start()
     _scanner = ARPScanner(callback=on_device, interval=30)
     threading.Thread(target=_scanner.start, daemon=True).start()
@@ -269,19 +270,30 @@ async def get_alerts() -> dict:
 
 @app.get("/capture/status")
 async def get_capture_status() -> dict:
-    return {"capturing": _capturing}
+    return {"capturing": _capturing, "ports": _port_filter}
 
 @app.post("/capture/stop")
 async def stop_capture() -> dict:
     _stop_capture()
-    await broadcast({"type": "capture_status", "capturing": False})
+    await broadcast({"type": "capture_status", "capturing": False, "ports": _port_filter})
     return {"capturing": False}
+
+@app.post("/capture/ports")
+async def set_port_filter(body: dict) -> dict:
+    global _port_filter
+    ports = [int(p) for p in body.get("ports", []) if str(p).isdigit() and 1 <= int(p) <= 65535]
+    _port_filter = ports
+    if _capturing:
+        _stop_capture()
+        _start_capture()
+    await broadcast({"type": "capture_status", "capturing": _capturing, "ports": _port_filter})
+    return {"ports": _port_filter}
 
 @app.post("/capture/start")
 async def start_capture() -> dict:
     if not _capturing:
         _start_capture()
-        await broadcast({"type": "capture_status", "capturing": True})
+        await broadcast({"type": "capture_status", "capturing": True, "ports": _port_filter})
     return {"capturing": True}
 
 @app.get("/timeline")

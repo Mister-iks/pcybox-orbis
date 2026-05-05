@@ -52,11 +52,19 @@ def get_process_for_port(port: int, proto: str) -> tuple[Optional[int], Optional
 
 
 class PacketSniffer:
-    def __init__(self, callback: Callable[[Packet], None]):
+    def __init__(self, callback: Callable[[Packet], None], ports: list[int] | None = None):
         self.callback = callback
+        self.ports = ports or []
         self.local_ips = get_local_ips()
         self._sniffer: Optional[AsyncSniffer] = None
         self._running = False
+
+    @property
+    def _bpf_filter(self) -> str:
+        if not self.ports:
+            return "ip"
+        port_expr = " or ".join(f"port {p}" for p in self.ports)
+        return f"ip and ({port_expr})"
 
     def _process_packet(self, pkt) -> None:
         if not pkt.haslayer(IP):
@@ -108,7 +116,7 @@ class PacketSniffer:
         self._running = True
         try:
             self._sniffer = AsyncSniffer(
-                filter="ip",
+                filter=self._bpf_filter,
                 prn=self._process_packet,
                 store=False,
             )

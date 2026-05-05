@@ -12,6 +12,7 @@ export function useWebSocket(url) {
   const [status, setStatus] = useState('connecting')
   const [bandwidth, setBandwidth] = useState([])
   const [capturing, setCapturing] = useState(true)
+  const [portFilter, setPortFilter] = useState([])
   const bwRef = useRef({})  // { secondTimestamp: totalBytes }
 
   // Tick every second: build bandwidth array from buckets
@@ -78,6 +79,7 @@ export function useWebSocket(url) {
 
         if (msg.type === 'capture_status') {
           setCapturing(msg.capturing)
+          if (msg.ports !== undefined) setPortFilter(msg.ports)
         }
       }
     }
@@ -95,5 +97,15 @@ export function useWebSocket(url) {
     setCapturing(data.capturing)
   }
 
-  return { nodes, edges, lanDevices, packets, alerts, unread, clearUnread, status, bandwidth, capturing, toggleCapture }
+  async function updatePortFilter(ports) {
+    const res = await fetch(`${API_BASE}/capture/ports`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ports }),
+    })
+    const data = await res.json()
+    setPortFilter(data.ports)
+  }
+
+  return { nodes, edges, lanDevices, packets, alerts, unread, clearUnread, status, bandwidth, capturing, toggleCapture, portFilter, updatePortFilter }
 }

@@ -86,6 +86,12 @@ const en = {
   capture_stopping: 'Stopping…',
   capture_starting: 'Starting…',
 
+  // Port filter
+  port_filter: 'Ports',
+  port_all: 'All ports',
+  port_placeholder: 'Add port (e.g. 443)',
+  port_invalid: 'Invalid port',
+
   // Map
   map_you: 'You',
   map_located: n => `${n} located host${n !== 1 ? 's' : ''}`,
@@ -189,6 +195,12 @@ const fr = {
   capture_start: 'Démarrer',
   capture_stopping: 'Arrêt…',
   capture_starting: 'Démarrage…',
+
+  // Port filter
+  port_filter: 'Ports',
+  port_all: 'Tous les ports',
+  port_placeholder: 'Ajouter un port (ex: 443)',
+  port_invalid: 'Port invalide',
 
   // Map
   map_you: 'Vous',

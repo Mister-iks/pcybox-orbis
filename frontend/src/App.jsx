@@ -1,5 +1,5 @@
-import { useState, useMemo } from 'react'
-import { Hexagon, Globe, Wifi, Smartphone, Monitor, Cpu, ShieldCheck, Radio, Zap, HelpCircle, AlertTriangle, Square, Play } from 'lucide-react'
+import { useState, useMemo, useRef, useEffect } from 'react'
+import { Hexagon, Globe, Wifi, Smartphone, Monitor, Cpu, ShieldCheck, Radio, Zap, HelpCircle, AlertTriangle, Square, Play, Filter } from 'lucide-react'
 import ForceGraph from './graph/ForceGraph'
 import MapView from './map/MapView'
 import Sidebar from './components/Sidebar'
@@ -11,7 +11,7 @@ import { WS_URL } from './api'
 import { useT } from './i18n'
 
 export default function App() {
-  const { nodes, edges, lanDevices, packets, alerts, unread, clearUnread, status, bandwidth, capturing, toggleCapture } = useWebSocket(WS_URL)
+  const { nodes, edges, lanDevices, packets, alerts, unread, clearUnread, status, bandwidth, capturing, toggleCapture, portFilter, updatePortFilter } = useWebSocket(WS_URL)
   const [selected, setSelected] = useState(null)
   const [view, setView] = useState('graph')
   const [showAlerts, setShowAlerts] = useState(false)
@@ -68,6 +68,7 @@ export default function App() {
           }}>
             <LangToggle />
             <ViewToggle view={view} onChange={setView} />
+            <PortFilter ports={portFilter} onUpdate={updatePortFilter} />
             <CaptureToggle capturing={capturing} onToggle={toggleCapture} />
             <AlertBell unread={unread} onClick={handleBell} />
             <StatusBadge status={status} lanCount={Object.keys(lanDevices).length} />
@@ -84,6 +85,122 @@ export default function App() {
 
         <Timeline />
       </div>
+    </div>
+  )
+}
+
+function PortFilter({ ports, onUpdate }) {
+  const { t } = useT()
+  const [open, setOpen] = useState(false)
+  const [input, setInput] = useState('')
+  const [error, setError] = useState(false)
+  const ref = useRef(null)
+
+  useEffect(() => {
+    function onClickOutside(e) {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false)
+    }
+    document.addEventListener('mousedown', onClickOutside)
+    return () => document.removeEventListener('mousedown', onClickOutside)
+  }, [])
+
+  function addPort(e) {
+    e.preventDefault()
+    const p = parseInt(input, 10)
+    if (!p || p < 1 || p > 65535) { setError(true); return }
+    if (ports.includes(p)) { setInput(''); return }
+    setError(false)
+    setInput('')
+    onUpdate([...ports, p])
+  }
+
+  function removePort(p) {
+    onUpdate(ports.filter(x => x !== p))
+  }
+
+  const active = ports.length > 0
+
+  return (
+    <div ref={ref} style={{ position: 'relative' }}>
+      <button onClick={() => setOpen(v => !v)} style={{
+        display: 'flex', alignItems: 'center', gap: 6,
+        background: active ? '#1e3a5f' : '#1e293b',
+        border: `1px solid ${active ? '#3b82f6' : '#334155'}`,
+        borderRadius: 20, padding: '5px 14px',
+        cursor: 'pointer', color: active ? '#93c5fd' : '#64748b',
+        fontSize: 11, fontWeight: 600, transition: 'all 0.15s',
+      }}>
+        <Filter size={11} />
+        {t('port_filter')}
+        {active && (
+          <span style={{
+            background: '#3b82f6', color: '#fff',
+            borderRadius: 10, padding: '0 6px', fontSize: 10,
+          }}>{ports.length}</span>
+        )}
+      </button>
+
+      {open && (
+        <div style={{
+          position: 'absolute', top: '110%', right: 0, zIndex: 100,
+          background: '#1e293b', border: '1px solid #334155',
+          borderRadius: 10, padding: 12, minWidth: 220,
+          boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
+        }}>
+          <div style={{ fontSize: 11, color: '#94a3b8', marginBottom: 8 }}>
+            {active ? `${ports.length} port${ports.length > 1 ? 's' : ''} actif${ports.length > 1 ? 's' : ''}` : t('port_all')}
+          </div>
+
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: ports.length ? 10 : 0 }}>
+            {ports.map(p => (
+              <span key={p} style={{
+                display: 'flex', alignItems: 'center', gap: 4,
+                background: '#0f172a', border: '1px solid #3b82f6',
+                borderRadius: 12, padding: '2px 8px',
+                fontSize: 11, color: '#93c5fd',
+              }}>
+                {p}
+                <button onClick={() => removePort(p)} style={{
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  color: '#64748b', padding: 0, lineHeight: 1, fontSize: 13,
+                }}>×</button>
+              </span>
+            ))}
+          </div>
+
+          <form onSubmit={addPort} style={{ display: 'flex', gap: 6 }}>
+            <input
+              autoFocus
+              value={input}
+              onChange={e => { setInput(e.target.value); setError(false) }}
+              placeholder={t('port_placeholder')}
+              style={{
+                flex: 1, background: '#0f172a',
+                border: `1px solid ${error ? '#ef4444' : '#334155'}`,
+                borderRadius: 6, padding: '5px 8px',
+                color: '#e2e8f0', fontSize: 11, outline: 'none',
+              }}
+            />
+            <button type="submit" style={{
+              background: '#3b82f6', border: 'none', borderRadius: 6,
+              padding: '5px 10px', color: '#fff', fontSize: 11,
+              cursor: 'pointer', fontWeight: 600,
+            }}>+</button>
+          </form>
+          {error && <div style={{ fontSize: 10, color: '#ef4444', marginTop: 4 }}>{t('port_invalid')}</div>}
+
+          {active && (
+            <button onClick={() => onUpdate([])} style={{
+              marginTop: 10, width: '100%', background: 'none',
+              border: '1px solid #334155', borderRadius: 6,
+              padding: '4px 0', color: '#64748b', fontSize: 10,
+              cursor: 'pointer',
+            }}>
+              {t('port_all')}
+            </button>
+          )}
+        </div>
+      )}
     </div>
   )
 }
