@@ -80,6 +80,12 @@ const en = {
   timeline_packets: n => `${n.toLocaleString()} packets`,
   timeline_alerts: n => `${n} alert${n > 1 ? 's' : ''}`,
 
+  // Capture toggle
+  capture_stop: 'Stop',
+  capture_start: 'Start',
+  capture_stopping: 'Stopping…',
+  capture_starting: 'Starting…',
+
   // Map
   map_you: 'You',
   map_located: n => `${n} located host${n !== 1 ? 's' : ''}`,
@@ -177,6 +183,12 @@ const fr = {
   // Timeline
   timeline_packets: n => `${n.toLocaleString('fr-FR')} paquets`,
   timeline_alerts: n => `${n} alerte${n > 1 ? 's' : ''}`,
+
+  // Capture toggle
+  capture_stop: 'Stop',
+  capture_start: 'Démarrer',
+  capture_stopping: 'Arrêt…',
+  capture_starting: 'Démarrage…',
 
   // Map
   map_you: 'Vous',

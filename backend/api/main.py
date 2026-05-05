@@ -23,6 +23,9 @@ connected_clients: list[WebSocket] = []
 enrichment_cache: dict[str, dict] = {}
 detector = AnomalyDetector()
 _loop: asyncio.AbstractEventLoop | None = None
+_sniffer: PacketSniffer | None = None
+_scanner: ARPScanner | None = None
+_capturing: bool = True
 
 
 # ── Broadcast ────────────────────────────────────────────────────────────────
@@ -198,6 +201,24 @@ def _cleanup_loop() -> None:
 
 # ── Startup ──────────────────────────────────────────────────────────────────
 
+def _start_capture() -> None:
+    global _sniffer, _scanner, _capturing
+    _sniffer = PacketSniffer(callback=on_packet)
+    threading.Thread(target=_sniffer.start, daemon=True).start()
+    _scanner = ARPScanner(callback=on_device, interval=30)
+    threading.Thread(target=_scanner.start, daemon=True).start()
+    _capturing = True
+
+
+def _stop_capture() -> None:
+    global _capturing
+    if _sniffer:
+        _sniffer.stop()
+    if _scanner:
+        _scanner.stop()
+    _capturing = False
+
+
 async def _startup() -> None:
     global _loop
     _loop = asyncio.get_running_loop()
@@ -208,12 +229,7 @@ async def _startup() -> None:
         "bytes": 0, "packets": 0, "alerted": False,
     }
 
-    sniffer = PacketSniffer(callback=on_packet)
-    threading.Thread(target=sniffer.start, daemon=True).start()
-
-    scanner = ARPScanner(callback=on_device, interval=30)
-    threading.Thread(target=scanner.start, daemon=True).start()
-
+    _start_capture()
     threading.Thread(target=_flush_loop, daemon=True).start()
     threading.Thread(target=_cleanup_loop, daemon=True).start()
 
@@ -250,6 +266,23 @@ async def get_devices() -> dict:
 @app.get("/alerts")
 async def get_alerts() -> dict:
     return {"alerts": detector.history[-100:]}
+
+@app.get("/capture/status")
+async def get_capture_status() -> dict:
+    return {"capturing": _capturing}
+
+@app.post("/capture/stop")
+async def stop_capture() -> dict:
+    _stop_capture()
+    await broadcast({"type": "capture_status", "capturing": False})
+    return {"capturing": False}
+
+@app.post("/capture/start")
+async def start_capture() -> dict:
+    if not _capturing:
+        _start_capture()
+        await broadcast({"type": "capture_status", "capturing": True})
+    return {"capturing": True}
 
 @app.get("/timeline")
 async def get_timeline(minutes: int = 60) -> dict:

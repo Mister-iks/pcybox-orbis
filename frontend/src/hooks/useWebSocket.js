@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { API_BASE } from '../api'
 
 export function useWebSocket(url) {
   const ws = useRef(null)
@@ -10,6 +11,7 @@ export function useWebSocket(url) {
   const [unread, setUnread] = useState(0)
   const [status, setStatus] = useState('connecting')
   const [bandwidth, setBandwidth] = useState([])
+  const [capturing, setCapturing] = useState(true)
   const bwRef = useRef({})  // { secondTimestamp: totalBytes }
 
   // Tick every second: build bandwidth array from buckets
@@ -73,6 +75,10 @@ export function useWebSocket(url) {
           setAlerts(prev => [msg.alert, ...prev].slice(0, 200))
           setUnread(prev => prev + 1)
         }
+
+        if (msg.type === 'capture_status') {
+          setCapturing(msg.capturing)
+        }
       }
     }
 
@@ -82,5 +88,12 @@ export function useWebSocket(url) {
 
   const clearUnread = () => setUnread(0)
 
-  return { nodes, edges, lanDevices, packets, alerts, unread, clearUnread, status, bandwidth }
+  async function toggleCapture() {
+    const endpoint = capturing ? '/capture/stop' : '/capture/start'
+    const res = await fetch(`${API_BASE}${endpoint}`, { method: 'POST' })
+    const data = await res.json()
+    setCapturing(data.capturing)
+  }
+
+  return { nodes, edges, lanDevices, packets, alerts, unread, clearUnread, status, bandwidth, capturing, toggleCapture }
 }

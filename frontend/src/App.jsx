@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { Hexagon, Globe, Wifi, Smartphone, Monitor, Cpu, ShieldCheck, Radio, Zap, HelpCircle, AlertTriangle } from 'lucide-react'
+import { Hexagon, Globe, Wifi, Smartphone, Monitor, Cpu, ShieldCheck, Radio, Zap, HelpCircle, AlertTriangle, Square, Play } from 'lucide-react'
 import ForceGraph from './graph/ForceGraph'
 import MapView from './map/MapView'
 import Sidebar from './components/Sidebar'
@@ -11,7 +11,7 @@ import { WS_URL } from './api'
 import { useT } from './i18n'
 
 export default function App() {
-  const { nodes, edges, lanDevices, packets, alerts, unread, clearUnread, status, bandwidth } = useWebSocket(WS_URL)
+  const { nodes, edges, lanDevices, packets, alerts, unread, clearUnread, status, bandwidth, capturing, toggleCapture } = useWebSocket(WS_URL)
   const [selected, setSelected] = useState(null)
   const [view, setView] = useState('graph')
   const [showAlerts, setShowAlerts] = useState(false)
@@ -68,6 +68,7 @@ export default function App() {
           }}>
             <LangToggle />
             <ViewToggle view={view} onChange={setView} />
+            <CaptureToggle capturing={capturing} onToggle={toggleCapture} />
             <AlertBell unread={unread} onClick={handleBell} />
             <StatusBadge status={status} lanCount={Object.keys(lanDevices).length} />
           </div>
@@ -84,6 +85,40 @@ export default function App() {
         <Timeline />
       </div>
     </div>
+  )
+}
+
+function CaptureToggle({ capturing, onToggle }) {
+  const { t } = useT()
+  const [loading, setLoading] = useState(false)
+
+  async function handleClick() {
+    setLoading(true)
+    await onToggle()
+    setLoading(false)
+  }
+
+  const label = loading
+    ? (capturing ? t('capture_stopping') : t('capture_starting'))
+    : (capturing ? t('capture_stop') : t('capture_start'))
+
+  const Icon = capturing ? Square : Play
+
+  return (
+    <button onClick={handleClick} disabled={loading} style={{
+      display: 'flex', alignItems: 'center', gap: 6,
+      background: capturing ? '#1e293b' : '#166534',
+      border: `1px solid ${capturing ? '#334155' : '#16a34a'}`,
+      borderRadius: 20, padding: '5px 14px',
+      cursor: loading ? 'wait' : 'pointer',
+      color: capturing ? '#f87171' : '#4ade80',
+      fontSize: 11, fontWeight: 600,
+      transition: 'all 0.15s',
+      opacity: loading ? 0.7 : 1,
+    }}>
+      <Icon size={11} />
+      {label}
+    </button>
   )
 }
 
