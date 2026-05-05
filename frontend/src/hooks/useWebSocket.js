@@ -81,6 +81,14 @@ export function useWebSocket(url) {
           setCapturing(msg.capturing)
           if (msg.ports !== undefined) setPortFilter(msg.ports)
         }
+
+        if (msg.type === 'reset') {
+          setNodes({})
+          setEdges({})
+          setLanDevices({})
+          setPackets([])
+          if (msg.ports !== undefined) setPortFilter(msg.ports)
+        }
       }
     }
 

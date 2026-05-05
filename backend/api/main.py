@@ -283,10 +283,20 @@ async def set_port_filter(body: dict) -> dict:
     global _port_filter
     ports = [int(p) for p in body.get("ports", []) if str(p).isdigit() and 1 <= int(p) <= 65535]
     _port_filter = ports
+
+    # Clear graph state so the UI reflects only the new filter
+    local = nodes.get("local")
+    nodes.clear()
+    edges.clear()
+    lan_devices.clear()
+    if local:
+        nodes["local"] = local
+
     if _capturing:
         _stop_capture()
         _start_capture()
-    await broadcast({"type": "capture_status", "capturing": _capturing, "ports": _port_filter})
+
+    await broadcast({"type": "reset", "ports": _port_filter})
     return {"ports": _port_filter}
 
 @app.post("/capture/start")
