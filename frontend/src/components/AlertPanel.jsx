@@ -147,12 +147,12 @@ function Badge({ count, color }) {
 }
 
 export function AlertToasts({ alerts }) {
-  const visible = alerts.filter(a => a.severity !== 'info').slice(0, 3)
+  const visible = alerts.filter(a => a.severity !== 'info').slice(0, 2)
   return (
     <div style={{
-      position: 'absolute', bottom: 80, left: 16,
-      display: 'flex', flexDirection: 'column-reverse', gap: 8,
-      pointerEvents: 'none', zIndex: 300,
+      position: 'absolute', bottom: 16, left: 16,
+      display: 'flex', flexDirection: 'column-reverse', gap: 4,
+      pointerEvents: 'none', zIndex: 300, maxWidth: 260,
     }}>
       {visible.map((alert, i) => <Toast key={alert.id} alert={alert} index={i} />)}
     </div>
@@ -167,18 +167,17 @@ function Toast({ alert, index }) {
 
   return (
     <div style={{
-      background: '#1e293b', border: `1px solid ${sev.color}`,
-      borderRadius: 8, padding: '8px 14px',
-      display: 'flex', alignItems: 'center', gap: 10,
-      boxShadow: `0 4px 20px ${sev.color}33`,
-      opacity: 1 - index * 0.25,
+      background: '#1e293b', border: `1px solid ${sev.color}44`,
+      borderLeft: `3px solid ${sev.color}`,
+      borderRadius: 6, padding: '5px 10px',
+      display: 'flex', alignItems: 'center', gap: 8,
+      opacity: 1 - index * 0.3,
       transform: `scale(${1 - index * 0.03})`,
-      maxWidth: 340,
     }}>
-      <TypeIcon size={16} color={sev.color} />
-      <div>
-        <div style={{ fontSize: 10, color: sev.color, fontWeight: 700 }}>{typeLabel}</div>
-        <div style={{ fontSize: 11, color: '#e2e8f0' }}>{alert.message}</div>
+      <TypeIcon size={12} color={sev.color} style={{ flexShrink: 0 }} />
+      <div style={{ minWidth: 0 }}>
+        <div style={{ fontSize: 9, color: sev.color, fontWeight: 700, textTransform: 'uppercase' }}>{typeLabel}</div>
+        <div style={{ fontSize: 10, color: '#94a3b8', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{alert.message}</div>
       </div>
     </div>
   )
