@@ -7,8 +7,12 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
-      '/ws': { target: 'ws://localhost:8000', ws: true },
-      '/graph': { target: 'http://localhost:8000' },
+      '/ws':       { target: 'ws://localhost:8000', ws: true },
+      '/graph':    { target: 'http://localhost:8000' },
+      '/devices':  { target: 'http://localhost:8000' },
+      '/alerts':   { target: 'http://localhost:8000' },
+      '/timeline': { target: 'http://localhost:8000' },
+      '/capture':  { target: 'http://localhost:8000' },
     },
   },
 })
