@@ -16,10 +16,40 @@ export default function App() {
   const [view, setView] = useState('graph')
   const [showAlerts, setShowAlerts] = useState(false)
   const [filter, setFilter] = useState({ text: '', category: 'all' })
+  const [excludedProcesses, setExcludedProcesses] = useState([])
 
   const alertedNodes = useMemo(() =>
     new Set(alerts.map(a => a.node_id).filter(Boolean)),
     [alerts]
+  )
+
+  const filteredNodes = useMemo(() => {
+    if (excludedProcesses.length === 0) return nodes
+    const out = {}
+    for (const [id, node] of Object.entries(nodes)) {
+      if (id === 'local') { out[id] = node; continue }
+      const procs = node.processes ? Object.keys(node.processes) : []
+      if (procs.length > 0 && procs.every(p => excludedProcesses.includes(p))) continue
+      out[id] = node
+    }
+    return out
+  }, [nodes, excludedProcesses])
+
+  const filteredEdges = useMemo(() => {
+    if (excludedProcesses.length === 0) return edges
+    const visibleIds = new Set([...Object.keys(filteredNodes), ...Object.keys(lanDevices)])
+    const out = {}
+    for (const [id, edge] of Object.entries(edges)) {
+      if (visibleIds.has(edge.source) && visibleIds.has(edge.target)) out[id] = edge
+    }
+    return out
+  }, [edges, filteredNodes, lanDevices, excludedProcesses])
+
+  const filteredPackets = useMemo(() =>
+    excludedProcesses.length === 0
+      ? packets
+      : packets.filter(p => !p.process || !excludedProcesses.includes(p.process)),
+    [packets, excludedProcesses]
   )
 
   const privacyScore = useMemo(() =>
@@ -35,9 +65,9 @@ export default function App() {
   return (
     <div style={{ display: 'flex', height: '100vh', width: '100vw', overflow: 'hidden' }}>
       <Sidebar
-        nodes={nodes}
+        nodes={filteredNodes}
         lanDevices={lanDevices}
-        packets={packets}
+        packets={filteredPackets}
         selected={selected}
         onClose={() => setSelected(null)}
         privacyScore={privacyScore}
@@ -50,8 +80,8 @@ export default function App() {
         <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
           {view === 'graph' && (
             <ForceGraph
-              nodes={nodes}
-              edges={edges}
+              nodes={filteredNodes}
+              edges={filteredEdges}
               lanDevices={lanDevices}
               alertedNodes={alertedNodes}
               onNodeClick={setSelected}
@@ -59,7 +89,7 @@ export default function App() {
             />
           )}
           {view === 'map' && (
-            <MapView nodes={nodes} onNodeClick={setSelected} />
+            <MapView nodes={filteredNodes} onNodeClick={setSelected} />
           )}
 
           <div style={{
@@ -68,6 +98,7 @@ export default function App() {
           }}>
             <LangToggle />
             <ViewToggle view={view} onChange={setView} />
+            <ProcessFilter excluded={excludedProcesses} onChange={setExcludedProcesses} nodes={nodes} />
             <PortFilter ports={portFilter} onUpdate={updatePortFilter} />
             <CaptureToggle capturing={capturing} onToggle={toggleCapture} />
             <AlertBell unread={unread} onClick={handleBell} />
@@ -85,6 +116,110 @@ export default function App() {
 
         <Timeline />
       </div>
+    </div>
+  )
+}
+
+function ProcessFilter({ excluded, onChange, nodes }) {
+  const { t } = useT()
+  const [open, setOpen] = useState(false)
+  const ref = useRef(null)
+
+  useEffect(() => {
+    function onClickOutside(e) {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false)
+    }
+    document.addEventListener('mousedown', onClickOutside)
+    return () => document.removeEventListener('mousedown', onClickOutside)
+  }, [])
+
+  const allProcesses = useMemo(() => {
+    const set = new Set()
+    Object.values(nodes).forEach(n => {
+      if (n.processes) Object.keys(n.processes).forEach(p => set.add(p))
+    })
+    return Array.from(set).sort()
+  }, [nodes])
+
+  function toggle(proc) {
+    onChange(excluded.includes(proc)
+      ? excluded.filter(p => p !== proc)
+      : [...excluded, proc]
+    )
+  }
+
+  const active = excluded.length > 0
+
+  return (
+    <div ref={ref} style={{ position: 'relative' }}>
+      <button onClick={() => setOpen(v => !v)} style={{
+        display: 'flex', alignItems: 'center', gap: 6,
+        background: active ? '#3b1f2b' : '#1e293b',
+        border: `1px solid ${active ? '#f87171' : '#334155'}`,
+        borderRadius: 20, padding: '5px 14px',
+        cursor: 'pointer', color: active ? '#fca5a5' : '#64748b',
+        fontSize: 11, fontWeight: 600, transition: 'all 0.15s',
+      }}>
+        {t('process_filter')}
+        {active && (
+          <span style={{
+            background: '#ef4444', color: '#fff',
+            borderRadius: 10, padding: '0 6px', fontSize: 10,
+          }}>{excluded.length}</span>
+        )}
+      </button>
+
+      {open && (
+        <div style={{
+          position: 'absolute', top: '110%', right: 0, zIndex: 100,
+          background: '#1e293b', border: '1px solid #334155',
+          borderRadius: 10, padding: 12, minWidth: 220, maxHeight: 300,
+          overflowY: 'auto', boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
+        }}>
+          <div style={{ fontSize: 11, color: '#94a3b8', marginBottom: 8 }}>
+            {t('process_filter_hint')}
+          </div>
+
+          {allProcesses.length === 0 && (
+            <div style={{ fontSize: 11, color: '#475569' }}>{t('process_none')}</div>
+          )}
+
+          {allProcesses.map(proc => {
+            const isExcluded = excluded.includes(proc)
+            return (
+              <div key={proc} onClick={() => toggle(proc)} style={{
+                display: 'flex', alignItems: 'center', gap: 8,
+                padding: '5px 6px', borderRadius: 6, cursor: 'pointer',
+                background: isExcluded ? '#2d1b1b' : 'transparent',
+                marginBottom: 2,
+              }}>
+                <div style={{
+                  width: 12, height: 12, borderRadius: 3, flexShrink: 0,
+                  border: `1px solid ${isExcluded ? '#ef4444' : '#475569'}`,
+                  background: isExcluded ? '#ef4444' : 'transparent',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  {isExcluded && <span style={{ color: '#fff', fontSize: 9, lineHeight: 1 }}>✕</span>}
+                </div>
+                <span style={{ fontSize: 11, color: isExcluded ? '#fca5a5' : '#e2e8f0' }}>
+                  {proc}
+                </span>
+              </div>
+            )
+          })}
+
+          {active && (
+            <button onClick={() => onChange([])} style={{
+              marginTop: 8, width: '100%', background: 'none',
+              border: '1px solid #334155', borderRadius: 6,
+              padding: '4px 0', color: '#64748b', fontSize: 10,
+              cursor: 'pointer',
+            }}>
+              {t('process_clear')}
+            </button>
+          )}
+        </div>
+      )}
     </div>
   )
 }

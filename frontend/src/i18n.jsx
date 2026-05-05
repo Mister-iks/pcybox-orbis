@@ -92,6 +92,12 @@ const en = {
   port_placeholder: 'Add port (e.g. 443)',
   port_invalid: 'Invalid port',
 
+  // Process filter
+  process_filter: 'Apps',
+  process_filter_hint: 'Click to hide app from graph',
+  process_none: 'No processes detected yet',
+  process_clear: 'Show all apps',
+
   // Map
   map_you: 'You',
   map_located: n => `${n} located host${n !== 1 ? 's' : ''}`,
@@ -201,6 +207,12 @@ const fr = {
   port_all: 'Tous les ports',
   port_placeholder: 'Ajouter un port (ex: 443)',
   port_invalid: 'Port invalide',
+
+  // Process filter
+  process_filter: 'Apps',
+  process_filter_hint: 'Cliquer pour masquer une app du graphe',
+  process_none: 'Aucun processus détecté pour l\'instant',
+  process_clear: 'Tout afficher',
 
   // Map
   map_you: 'Vous',
