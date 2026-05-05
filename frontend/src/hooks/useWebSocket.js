@@ -83,9 +83,16 @@ export function useWebSocket(url) {
         }
 
         if (msg.type === 'reset') {
-          setNodes({})
-          setEdges({})
-          setLanDevices({})
+          const nodeMap = {}, deviceMap = {}
+          ;(msg.nodes || []).forEach(n => {
+            if (n.category === 'lan_device') deviceMap[n.id] = n
+            else nodeMap[n.id] = n
+          })
+          const edgeMap = {}
+          ;(msg.edges || []).forEach(e => { edgeMap[e.id] = e })
+          setNodes(nodeMap)
+          setEdges(edgeMap)
+          setLanDevices(deviceMap)
           setPackets([])
           if (msg.ports !== undefined) setPortFilter(msg.ports)
         }

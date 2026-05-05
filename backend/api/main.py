@@ -296,7 +296,12 @@ async def set_port_filter(body: dict) -> dict:
         _stop_capture()
         _start_capture()
 
-    await broadcast({"type": "reset", "ports": _port_filter})
+    await broadcast({
+        "type": "reset",
+        "ports": _port_filter,
+        "nodes": list(nodes.values()) + list(lan_devices.values()),
+        "edges": list(edges.values()),
+    })
     return {"ports": _port_filter}
 
 @app.post("/capture/start")

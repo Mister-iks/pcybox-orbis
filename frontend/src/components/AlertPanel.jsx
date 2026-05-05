@@ -150,8 +150,7 @@ export function AlertToasts({ alerts }) {
   const visible = alerts.filter(a => a.severity !== 'info').slice(0, 3)
   return (
     <div style={{
-      position: 'absolute', bottom: 16, left: '50%',
-      transform: 'translateX(-50%)',
+      position: 'absolute', bottom: 80, left: 16,
       display: 'flex', flexDirection: 'column-reverse', gap: 8,
       pointerEvents: 'none', zIndex: 300,
     }}>
