@@ -8,7 +8,9 @@
   "scripts": {
     "start": "electron .",
     "build": "electron-builder --win --x64",
-    "build:dir": "electron-builder --win --x64 --dir"
+    "build:dir": "electron-builder --win --x64 --dir",
+    "build:mac": "electron-builder --mac",
+    "build:mac:dir": "electron-builder --mac --dir"
   },
   "devDependencies": {
     "electron": "^28.3.3",
@@ -32,21 +34,23 @@
         "to": "icon.png"
       },
       {
-        "from": "../dist/backend/pcybox-orbis-backend.exe",
-        "to": "pcybox-orbis-backend.exe"
-      },
-      {
         "from": "../frontend/dist",
         "to": "frontend_dist"
-      },
-      {
-        "from": "../resources/npcap-installer.exe",
-        "to": "npcap-installer.exe"
       }
     ],
     "win": {
       "target": "nsis",
-      "requestedExecutionLevel": "requireAdministrator"
+      "requestedExecutionLevel": "requireAdministrator",
+      "extraResources": [
+        {
+          "from": "../dist/backend/pcybox-orbis-backend.exe",
+          "to": "pcybox-orbis-backend.exe"
+        },
+        {
+          "from": "../resources/npcap-installer.exe",
+          "to": "npcap-installer.exe"
+        }
+      ]
     },
     "nsis": {
       "oneClick": false,
@@ -54,6 +58,24 @@
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
       "shortcutName": "PCYBOX Orbis"
+    },
+    "mac": {
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "category": "public.app-category.developer-tools",
+      "icon": "icon.png",
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false,
+      "entitlements": "entitlements.mac.plist",
+      "entitlementsInherit": "entitlements.mac.plist",
+      "extraResources": [
+        {
+          "from": "../dist/backend/pcybox-orbis-backend",
+          "to": "pcybox-orbis-backend"
+        }
+      ]
     }
   }
 }

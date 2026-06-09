@@ -215,9 +215,28 @@ def _cleanup_loop() -> None:
 
 # ── Startup ──────────────────────────────────────────────────────────────────
 
+def _on_sniffer_status(active: bool, error: str | None) -> None:
+    global _capturing
+    _capturing = active
+    if _loop is None:
+        return
+    payload = {
+        "type": "capture_status",
+        "capturing": active,
+        "ports": _port_filter,
+        "error": error,
+        "iface": _sniffer.iface if _sniffer else None,
+    }
+    asyncio.run_coroutine_threadsafe(broadcast(payload), _loop)
+
+
 def _start_capture() -> None:
     global _sniffer, _scanner, _capturing
-    _sniffer = PacketSniffer(callback=on_packet, ports=_port_filter)
+    _sniffer = PacketSniffer(
+        callback=on_packet,
+        ports=_port_filter,
+        on_status=_on_sniffer_status,
+    )
     threading.Thread(target=_sniffer.start, daemon=True).start()
     _scanner = ARPScanner(callback=on_device, interval=30)
     threading.Thread(target=_scanner.start, daemon=True).start()
@@ -290,12 +309,23 @@ async def get_media() -> dict:
 
 @app.get("/capture/status")
 async def get_capture_status() -> dict:
-    return {"capturing": _capturing, "ports": _port_filter}
+    return {
+        "capturing": _capturing and (_sniffer is None or _sniffer.active),
+        "ports": _port_filter,
+        "error": _sniffer.error if _sniffer else None,
+        "iface": _sniffer.iface if _sniffer else None,
+    }
 
 @app.post("/capture/stop")
 async def stop_capture() -> dict:
     _stop_capture()
-    await broadcast({"type": "capture_status", "capturing": False, "ports": _port_filter})
+    await broadcast({
+        "type": "capture_status",
+        "capturing": False,
+        "ports": _port_filter,
+        "error": None,
+        "iface": _sniffer.iface if _sniffer else None,
+    })
     return {"capturing": False}
 
 @app.post("/capture/ports")
@@ -328,7 +358,13 @@ async def set_port_filter(body: dict) -> dict:
 async def start_capture() -> dict:
     if not _capturing:
         _start_capture()
-        await broadcast({"type": "capture_status", "capturing": True, "ports": _port_filter})
+        await broadcast({
+            "type": "capture_status",
+            "capturing": True,
+            "ports": _port_filter,
+            "error": _sniffer.error if _sniffer else None,
+            "iface": _sniffer.iface if _sniffer else None,
+        })
     return {"capturing": True}
 
 @app.get("/timeline")
