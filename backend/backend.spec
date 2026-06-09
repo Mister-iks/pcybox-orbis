@@ -1,8 +1,27 @@
 # backend.spec
 # Run from backend/ directory:
-#   ..\.venv\Scripts\pyinstaller.exe backend.spec --distpath ../dist/backend
+#   Windows: ..\.venv\Scripts\pyinstaller.exe backend.spec --distpath ../dist/backend
+#   macOS:   python3 -m PyInstaller backend.spec --distpath ../dist/backend --clean
 
+import sys
 from PyInstaller.utils.hooks import collect_all, collect_submodules
+
+if sys.platform == 'win32':
+    _platform_imports = [
+        'psutil._pswindows',
+        'psutil._psutil_windows',
+        'asyncio.windows_events',
+    ]
+elif sys.platform == 'darwin':
+    _platform_imports = [
+        'psutil._psosx',
+        'psutil._psutil_osx',
+    ]
+else:
+    _platform_imports = [
+        'psutil._pslinux',
+        'psutil._psutil_linux',
+    ]
 
 # Pull in ALL of scapy (layers, arch, libs, data files)
 scapy_datas, scapy_binaries, scapy_hiddenimports = collect_all('scapy')
@@ -38,11 +57,8 @@ a = Analysis(
 
         # ── DNS / networking ─────────────────────────────────────────────
         + collect_submodules('dns')
-        + [
-            'psutil',
-            'psutil._pswindows',
-            'psutil._psutil_windows',
-        ]
+        + ['psutil']
+        + _platform_imports
 
         # ── stdlib extras often missed ───────────────────────────────────
         + [
@@ -51,7 +67,6 @@ a = Analysis(
             'email.mime.base',
             'logging.handlers',
             'asyncio',
-            'asyncio.windows_events',
             'sqlite3',
         ]
     ),
@@ -78,7 +93,7 @@ exe = EXE(
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
-    upx=True,
+    upx=sys.platform == 'win32',
     upx_exclude=[],
     runtime_tmpdir=None,
     console=True,           # keep visible for debugging; set False for release

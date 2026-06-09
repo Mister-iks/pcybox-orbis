@@ -3,7 +3,7 @@ const zlib = require('zlib')
 const fs   = require('fs')
 const path = require('path')
 
-const S = 256
+const S = 512
 const buf = Buffer.alloc(S * S * 4, 0)  // RGBA, fully transparent
 
 // Alpha-composite one pixel
