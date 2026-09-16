@@ -28,6 +28,7 @@ _sniffer: PacketSniffer | None = None
 _scanner: ARPScanner | None = None
 _capturing: bool = True
 _port_filter: list[int] = []
+_excluded_processes: set[str] = set()
 _media_state: dict = {"mic": [], "camera": []}
 
 
@@ -53,6 +54,9 @@ def on_packet(pkt: Packet) -> None:
 
 
 async def _handle_packet(pkt: Packet) -> None:
+    if pkt.process_name and pkt.process_name in _excluded_processes:
+        return
+
     remote_ip = pkt.dst_ip if pkt.direction == "out" else pkt.src_ip
 
     if remote_ip not in enrichment_cache:
@@ -290,12 +294,17 @@ async def get_media() -> dict:
 
 @app.get("/capture/status")
 async def get_capture_status() -> dict:
-    return {"capturing": _capturing, "ports": _port_filter}
+    return {"capturing": _capturing, "ports": _port_filter, "excluded_processes": sorted(_excluded_processes)}
 
 @app.post("/capture/stop")
 async def stop_capture() -> dict:
     _stop_capture()
-    await broadcast({"type": "capture_status", "capturing": False, "ports": _port_filter})
+    await broadcast({
+        "type": "capture_status",
+        "capturing": False,
+        "ports": _port_filter,
+        "excluded_processes": sorted(_excluded_processes),
+    })
     return {"capturing": False}
 
 @app.post("/capture/ports")
@@ -328,8 +337,26 @@ async def set_port_filter(body: dict) -> dict:
 async def start_capture() -> dict:
     if not _capturing:
         _start_capture()
-        await broadcast({"type": "capture_status", "capturing": True, "ports": _port_filter})
+        await broadcast({
+            "type": "capture_status",
+            "capturing": True,
+            "ports": _port_filter,
+            "excluded_processes": sorted(_excluded_processes),
+        })
     return {"capturing": True}
+
+@app.post("/capture/processes")
+async def set_process_filter(body: dict) -> dict:
+    global _excluded_processes
+    _excluded_processes = {str(p) for p in body.get("excluded", []) if isinstance(p, str)}
+
+    await broadcast({
+        "type": "capture_status",
+        "capturing": _capturing,
+        "ports": _port_filter,
+        "excluded_processes": sorted(_excluded_processes),
+    })
+    return {"excluded_processes": sorted(_excluded_processes)}
 
 @app.get("/timeline")
 async def get_timeline(minutes: int = 60) -> dict:
@@ -351,6 +378,9 @@ async def websocket_endpoint(websocket: WebSocket) -> None:
         "edges": list(edges.values()),
         "alerts": detector.history[-50:],
         "media": _media_state,
+        "capturing": _capturing,
+        "ports": _port_filter,
+        "excluded_processes": sorted(_excluded_processes),
     }))
 
     try:

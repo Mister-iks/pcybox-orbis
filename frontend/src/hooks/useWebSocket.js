@@ -13,6 +13,7 @@ export function useWebSocket(url) {
   const [bandwidth, setBandwidth] = useState([])
   const [capturing, setCapturing] = useState(true)
   const [portFilter, setPortFilter] = useState([])
+  const [excludedProcesses, setExcludedProcesses] = useState([])
   const [media, setMedia] = useState({ mic: [], camera: [] })
   const bwRef = useRef({})  // { secondTimestamp: totalBytes }
 
@@ -48,6 +49,9 @@ export function useWebSocket(url) {
 
         if (msg.type === 'init') {
           if (msg.media) setMedia(msg.media)
+          if (msg.capturing !== undefined) setCapturing(msg.capturing)
+          if (msg.ports !== undefined) setPortFilter(msg.ports)
+          if (msg.excluded_processes !== undefined) setExcludedProcesses(msg.excluded_processes)
           const nodeMap = {}, edgeMap = {}, deviceMap = {}
           msg.nodes.forEach(n => {
             if (n.category === 'lan_device') deviceMap[n.id] = n
@@ -82,6 +86,7 @@ export function useWebSocket(url) {
         if (msg.type === 'capture_status') {
           setCapturing(msg.capturing)
           if (msg.ports !== undefined) setPortFilter(msg.ports)
+          if (msg.excluded_processes !== undefined) setExcludedProcesses(msg.excluded_processes)
         }
 
         if (msg.type === 'media') {
@@ -128,5 +133,15 @@ export function useWebSocket(url) {
     setPortFilter(data.ports)
   }
 
-  return { nodes, edges, lanDevices, packets, alerts, unread, clearUnread, status, bandwidth, capturing, toggleCapture, portFilter, updatePortFilter, media }
+  async function updateProcessFilter(excluded) {
+    const res = await fetch(`${API_BASE}/capture/processes`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ excluded }),
+    })
+    const data = await res.json()
+    setExcludedProcesses(data.excluded_processes)
+  }
+
+  return { nodes, edges, lanDevices, packets, alerts, unread, clearUnread, status, bandwidth, capturing, toggleCapture, portFilter, updatePortFilter, excludedProcesses, updateProcessFilter, media }
 }

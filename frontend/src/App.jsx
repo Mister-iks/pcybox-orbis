@@ -11,12 +11,11 @@ import { WS_URL } from './api'
 import { useT } from './i18n'
 
 export default function App() {
-  const { nodes, edges, lanDevices, packets, alerts, unread, clearUnread, status, bandwidth, capturing, toggleCapture, portFilter, updatePortFilter, media } = useWebSocket(WS_URL)
+  const { nodes, edges, lanDevices, packets, alerts, unread, clearUnread, status, bandwidth, capturing, toggleCapture, portFilter, updatePortFilter, excludedProcesses, updateProcessFilter, media } = useWebSocket(WS_URL)
   const [selected, setSelected] = useState(null)
   const [view, setView] = useState('graph')
   const [showAlerts, setShowAlerts] = useState(false)
   const [filter, setFilter] = useState({ text: '', category: 'all' })
-  const [excludedProcesses, setExcludedProcesses] = useState([])
 
   const alertedNodes = useMemo(() =>
     new Set(alerts.map(a => a.node_id).filter(Boolean)),
@@ -100,7 +99,7 @@ export default function App() {
             <LangToggle />
             <ViewToggle view={view} onChange={setView} />
             <ExportButton nodes={nodes} edges={edges} lanDevices={lanDevices} alerts={alerts} />
-            <ProcessFilter excluded={excludedProcesses} onChange={setExcludedProcesses} nodes={nodes} />
+            <ProcessFilter excluded={excludedProcesses} onChange={updateProcessFilter} nodes={nodes} />
             <PortFilter ports={portFilter} onUpdate={updatePortFilter} />
             <CaptureToggle capturing={capturing} onToggle={toggleCapture} />
             <AlertBell unread={unread} onClick={handleBell} />
