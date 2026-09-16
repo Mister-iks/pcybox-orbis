@@ -29,6 +29,7 @@ _scanner: ARPScanner | None = None
 _capturing: bool = True
 _port_filter: list[int] = []
 _excluded_processes: set[str] = set()
+_whitelisted_ips: set[str] = set()
 _media_state: dict = {"mic": [], "camera": []}
 
 
@@ -58,6 +59,9 @@ async def _handle_packet(pkt: Packet) -> None:
         return
 
     remote_ip = pkt.dst_ip if pkt.direction == "out" else pkt.src_ip
+
+    if remote_ip in _whitelisted_ips:
+        return
 
     if remote_ip not in enrichment_cache:
         enrichment_cache[remote_ip] = await enrich_ip(remote_ip)
@@ -294,7 +298,12 @@ async def get_media() -> dict:
 
 @app.get("/capture/status")
 async def get_capture_status() -> dict:
-    return {"capturing": _capturing, "ports": _port_filter, "excluded_processes": sorted(_excluded_processes)}
+    return {
+        "capturing": _capturing,
+        "ports": _port_filter,
+        "excluded_processes": sorted(_excluded_processes),
+        "whitelisted_ips": sorted(_whitelisted_ips),
+    }
 
 @app.post("/capture/stop")
 async def stop_capture() -> dict:
@@ -304,6 +313,7 @@ async def stop_capture() -> dict:
         "capturing": False,
         "ports": _port_filter,
         "excluded_processes": sorted(_excluded_processes),
+        "whitelisted_ips": sorted(_whitelisted_ips),
     })
     return {"capturing": False}
 
@@ -342,6 +352,7 @@ async def start_capture() -> dict:
             "capturing": True,
             "ports": _port_filter,
             "excluded_processes": sorted(_excluded_processes),
+            "whitelisted_ips": sorted(_whitelisted_ips),
         })
     return {"capturing": True}
 
@@ -355,8 +366,33 @@ async def set_process_filter(body: dict) -> dict:
         "capturing": _capturing,
         "ports": _port_filter,
         "excluded_processes": sorted(_excluded_processes),
+        "whitelisted_ips": sorted(_whitelisted_ips),
     })
     return {"excluded_processes": sorted(_excluded_processes)}
+
+@app.post("/capture/whitelist")
+async def set_ip_whitelist(body: dict) -> dict:
+    global _whitelisted_ips
+    _whitelisted_ips = {str(ip) for ip in body.get("ips", []) if isinstance(ip, str)}
+
+    removed_ids = [ip for ip in _whitelisted_ips if ip != "local" and nodes.pop(ip, None) is not None]
+    if removed_ids:
+        removed_set = set(removed_ids)
+        for edge_id in [eid for eid, e in edges.items() if e["source"] in removed_set or e["target"] in removed_set]:
+            edges.pop(edge_id, None)
+        for ip in removed_ids:
+            enrichment_cache.pop(ip, None)
+
+    await broadcast({
+        "type": "capture_status",
+        "capturing": _capturing,
+        "ports": _port_filter,
+        "excluded_processes": sorted(_excluded_processes),
+        "whitelisted_ips": sorted(_whitelisted_ips),
+    })
+    if removed_ids:
+        await broadcast({"type": "nodes_removed", "ids": removed_ids})
+    return {"whitelisted_ips": sorted(_whitelisted_ips)}
 
 @app.get("/timeline")
 async def get_timeline(minutes: int = 60) -> dict:
@@ -381,6 +417,7 @@ async def websocket_endpoint(websocket: WebSocket) -> None:
         "capturing": _capturing,
         "ports": _port_filter,
         "excluded_processes": sorted(_excluded_processes),
+        "whitelisted_ips": sorted(_whitelisted_ips),
     }))
 
     try:

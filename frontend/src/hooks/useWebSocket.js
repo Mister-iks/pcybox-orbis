@@ -14,6 +14,7 @@ export function useWebSocket(url) {
   const [capturing, setCapturing] = useState(true)
   const [portFilter, setPortFilter] = useState([])
   const [excludedProcesses, setExcludedProcesses] = useState([])
+  const [whitelistedIps, setWhitelistedIps] = useState([])
   const [media, setMedia] = useState({ mic: [], camera: [] })
   const bwRef = useRef({})  // { secondTimestamp: totalBytes }
 
@@ -52,6 +53,7 @@ export function useWebSocket(url) {
           if (msg.capturing !== undefined) setCapturing(msg.capturing)
           if (msg.ports !== undefined) setPortFilter(msg.ports)
           if (msg.excluded_processes !== undefined) setExcludedProcesses(msg.excluded_processes)
+          if (msg.whitelisted_ips !== undefined) setWhitelistedIps(msg.whitelisted_ips)
           const nodeMap = {}, edgeMap = {}, deviceMap = {}
           msg.nodes.forEach(n => {
             if (n.category === 'lan_device') deviceMap[n.id] = n
@@ -87,6 +89,21 @@ export function useWebSocket(url) {
           setCapturing(msg.capturing)
           if (msg.ports !== undefined) setPortFilter(msg.ports)
           if (msg.excluded_processes !== undefined) setExcludedProcesses(msg.excluded_processes)
+          if (msg.whitelisted_ips !== undefined) setWhitelistedIps(msg.whitelisted_ips)
+        }
+
+        if (msg.type === 'nodes_removed') {
+          const removed = new Set(msg.ids || [])
+          setNodes(prev => {
+            const out = {}
+            for (const [id, n] of Object.entries(prev)) if (!removed.has(id)) out[id] = n
+            return out
+          })
+          setEdges(prev => {
+            const out = {}
+            for (const [id, e] of Object.entries(prev)) if (!removed.has(e.source) && !removed.has(e.target)) out[id] = e
+            return out
+          })
         }
 
         if (msg.type === 'media') {
@@ -143,5 +160,15 @@ export function useWebSocket(url) {
     setExcludedProcesses(data.excluded_processes)
   }
 
-  return { nodes, edges, lanDevices, packets, alerts, unread, clearUnread, status, bandwidth, capturing, toggleCapture, portFilter, updatePortFilter, excludedProcesses, updateProcessFilter, media }
+  async function updateIpWhitelist(ips) {
+    const res = await fetch(`${API_BASE}/capture/whitelist`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ips }),
+    })
+    const data = await res.json()
+    setWhitelistedIps(data.whitelisted_ips)
+  }
+
+  return { nodes, edges, lanDevices, packets, alerts, unread, clearUnread, status, bandwidth, capturing, toggleCapture, portFilter, updatePortFilter, excludedProcesses, updateProcessFilter, whitelistedIps, updateIpWhitelist, media }
 }

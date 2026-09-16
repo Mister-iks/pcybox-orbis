@@ -1,4 +1,4 @@
-import { Wifi, Smartphone, Monitor, Tv, Cpu, HelpCircle } from 'lucide-react'
+import { Wifi, Smartphone, Monitor, Tv, Cpu, HelpCircle, ShieldOff } from 'lucide-react'
 import PrivacyScore from './PrivacyScore'
 import BandwidthChart from './BandwidthChart'
 import SearchBar from './SearchBar'
@@ -38,7 +38,7 @@ function matchesFilter(node, filter) {
   return true
 }
 
-export default function Sidebar({ nodes, lanDevices, packets, selected, onClose, privacyScore, bandwidth, filter, onFilterChange }) {
+export default function Sidebar({ nodes, lanDevices, packets, selected, onClose, privacyScore, bandwidth, filter, onFilterChange, onWhitelist }) {
   const { t } = useT()
   const extNodes = Object.values(nodes).filter(n => n.id !== 'local')
   const devList  = Object.values(lanDevices)
@@ -90,7 +90,7 @@ export default function Sidebar({ nodes, lanDevices, packets, selected, onClose,
             </span>
             <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', fontSize: 16 }}>x</button>
           </div>
-          <NodeDetail node={selected} />
+          <NodeDetail node={selected} onWhitelist={onWhitelist} />
         </div>
       )}
 
@@ -175,7 +175,7 @@ function NodeRow({ node }) {
   )
 }
 
-function NodeDetail({ node }) {
+function NodeDetail({ node, onWhitelist }) {
   const { t } = useT()
   const fields = [
     [t('field_ip'),       node.ip],
@@ -218,6 +218,18 @@ function NodeDetail({ node }) {
             </div>
           ))}
         </>
+      )}
+
+      {node.id !== 'local' && node.ip && onWhitelist && (
+        <button onClick={() => onWhitelist(node.ip)} style={{
+          marginTop: 10, width: '100%', display: 'flex', alignItems: 'center',
+          justifyContent: 'center', gap: 6,
+          background: 'none', border: '1px solid #22c55e', borderRadius: 6,
+          padding: '5px 0', color: '#86efac', fontSize: 10, cursor: 'pointer',
+        }}>
+          <ShieldOff size={11} />
+          {t('whitelist_action')}
+        </button>
       )}
     </div>
   )

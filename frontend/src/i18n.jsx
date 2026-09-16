@@ -106,6 +106,14 @@ const en = {
   process_none: 'No processes detected yet',
   process_clear: 'Show all apps',
 
+  // IP whitelist
+  ip_whitelist: 'Trusted',
+  ip_whitelist_hint: 'Trusted IPs are no longer captured or shown',
+  ip_placeholder: 'Add IP (e.g. 1.1.1.1)',
+  ip_invalid: 'Invalid IP address',
+  ip_clear: 'Clear whitelist',
+  whitelist_action: 'Mark as trusted',
+
   // Map
   map_you: 'You',
   map_located: n => `${n} located host${n !== 1 ? 's' : ''}`,
@@ -229,6 +237,14 @@ const fr = {
   process_filter_hint: 'Cliquer pour masquer une app du graphe',
   process_none: 'Aucun processus détecté pour l\'instant',
   process_clear: 'Tout afficher',
+
+  // IP whitelist
+  ip_whitelist: 'Confiance',
+  ip_whitelist_hint: 'Les IPs de confiance ne sont plus capturées ni affichées',
+  ip_placeholder: 'Ajouter une IP (ex: 1.1.1.1)',
+  ip_invalid: 'Adresse IP invalide',
+  ip_clear: 'Vider la liste',
+  whitelist_action: 'Marquer comme fiable',
 
   // Map
   map_you: 'Vous',
