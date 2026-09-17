@@ -28,6 +28,8 @@ _sniffer: PacketSniffer | None = None
 _scanner: ARPScanner | None = None
 _capturing: bool = True
 _port_filter: list[int] = []
+_excluded_processes: set[str] = set()
+_whitelisted_ips: set[str] = set()
 _media_state: dict = {"mic": [], "camera": []}
 
 
@@ -53,7 +55,13 @@ def on_packet(pkt: Packet) -> None:
 
 
 async def _handle_packet(pkt: Packet) -> None:
+    if pkt.process_name and pkt.process_name in _excluded_processes:
+        return
+
     remote_ip = pkt.dst_ip if pkt.direction == "out" else pkt.src_ip
+
+    if remote_ip in _whitelisted_ips:
+        return
 
     if remote_ip not in enrichment_cache:
         enrichment_cache[remote_ip] = await enrich_ip(remote_ip)
@@ -290,12 +298,23 @@ async def get_media() -> dict:
 
 @app.get("/capture/status")
 async def get_capture_status() -> dict:
-    return {"capturing": _capturing, "ports": _port_filter}
+    return {
+        "capturing": _capturing,
+        "ports": _port_filter,
+        "excluded_processes": sorted(_excluded_processes),
+        "whitelisted_ips": sorted(_whitelisted_ips),
+    }
 
 @app.post("/capture/stop")
 async def stop_capture() -> dict:
     _stop_capture()
-    await broadcast({"type": "capture_status", "capturing": False, "ports": _port_filter})
+    await broadcast({
+        "type": "capture_status",
+        "capturing": False,
+        "ports": _port_filter,
+        "excluded_processes": sorted(_excluded_processes),
+        "whitelisted_ips": sorted(_whitelisted_ips),
+    })
     return {"capturing": False}
 
 @app.post("/capture/ports")
@@ -328,8 +347,52 @@ async def set_port_filter(body: dict) -> dict:
 async def start_capture() -> dict:
     if not _capturing:
         _start_capture()
-        await broadcast({"type": "capture_status", "capturing": True, "ports": _port_filter})
+        await broadcast({
+            "type": "capture_status",
+            "capturing": True,
+            "ports": _port_filter,
+            "excluded_processes": sorted(_excluded_processes),
+            "whitelisted_ips": sorted(_whitelisted_ips),
+        })
     return {"capturing": True}
+
+@app.post("/capture/processes")
+async def set_process_filter(body: dict) -> dict:
+    global _excluded_processes
+    _excluded_processes = {str(p) for p in body.get("excluded", []) if isinstance(p, str)}
+
+    await broadcast({
+        "type": "capture_status",
+        "capturing": _capturing,
+        "ports": _port_filter,
+        "excluded_processes": sorted(_excluded_processes),
+        "whitelisted_ips": sorted(_whitelisted_ips),
+    })
+    return {"excluded_processes": sorted(_excluded_processes)}
+
+@app.post("/capture/whitelist")
+async def set_ip_whitelist(body: dict) -> dict:
+    global _whitelisted_ips
+    _whitelisted_ips = {str(ip) for ip in body.get("ips", []) if isinstance(ip, str)}
+
+    removed_ids = [ip for ip in _whitelisted_ips if ip != "local" and nodes.pop(ip, None) is not None]
+    if removed_ids:
+        removed_set = set(removed_ids)
+        for edge_id in [eid for eid, e in edges.items() if e["source"] in removed_set or e["target"] in removed_set]:
+            edges.pop(edge_id, None)
+        for ip in removed_ids:
+            enrichment_cache.pop(ip, None)
+
+    await broadcast({
+        "type": "capture_status",
+        "capturing": _capturing,
+        "ports": _port_filter,
+        "excluded_processes": sorted(_excluded_processes),
+        "whitelisted_ips": sorted(_whitelisted_ips),
+    })
+    if removed_ids:
+        await broadcast({"type": "nodes_removed", "ids": removed_ids})
+    return {"whitelisted_ips": sorted(_whitelisted_ips)}
 
 @app.get("/timeline")
 async def get_timeline(minutes: int = 60) -> dict:
@@ -343,15 +406,23 @@ async def get_timeline(minutes: int = 60) -> dict:
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket) -> None:
     await websocket.accept()
-    connected_clients.append(websocket)
 
+    # Send init before registering the client so a concurrent broadcast
+    # (e.g. an 'update' referencing the 'local' node) can never reach it
+    # first and leave the frontend graph in an inconsistent state.
     await websocket.send_text(json.dumps({
         "type": "init",
         "nodes": list(nodes.values()) + list(lan_devices.values()),
         "edges": list(edges.values()),
         "alerts": detector.history[-50:],
         "media": _media_state,
+        "capturing": _capturing,
+        "ports": _port_filter,
+        "excluded_processes": sorted(_excluded_processes),
+        "whitelisted_ips": sorted(_whitelisted_ips),
     }))
+
+    connected_clients.append(websocket)
 
     try:
         while True:

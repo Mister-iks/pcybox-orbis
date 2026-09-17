@@ -1,5 +1,5 @@
 import { useState, useMemo, useRef, useEffect } from 'react'
-import { Hexagon, Globe, Wifi, Smartphone, Monitor, Cpu, ShieldCheck, Radio, Zap, HelpCircle, AlertTriangle, Square, Play, Filter, Mic, Camera, Download } from 'lucide-react'
+import { Hexagon, Globe, Wifi, Smartphone, Monitor, Cpu, ShieldCheck, Radio, Zap, HelpCircle, AlertTriangle, Square, Play, Filter, Mic, Camera, Download, ShieldOff } from 'lucide-react'
 import ForceGraph from './graph/ForceGraph'
 import MapView from './map/MapView'
 import Sidebar from './components/Sidebar'
@@ -11,12 +11,11 @@ import { WS_URL } from './api'
 import { useT } from './i18n'
 
 export default function App() {
-  const { nodes, edges, lanDevices, packets, alerts, unread, clearUnread, status, bandwidth, capturing, toggleCapture, portFilter, updatePortFilter, media } = useWebSocket(WS_URL)
+  const { nodes, edges, lanDevices, packets, alerts, unread, clearUnread, status, bandwidth, capturing, toggleCapture, portFilter, updatePortFilter, excludedProcesses, updateProcessFilter, whitelistedIps, updateIpWhitelist, media } = useWebSocket(WS_URL)
   const [selected, setSelected] = useState(null)
   const [view, setView] = useState('graph')
   const [showAlerts, setShowAlerts] = useState(false)
   const [filter, setFilter] = useState({ text: '', category: 'all' })
-  const [excludedProcesses, setExcludedProcesses] = useState([])
 
   const alertedNodes = useMemo(() =>
     new Set(alerts.map(a => a.node_id).filter(Boolean)),
@@ -62,6 +61,12 @@ export default function App() {
     clearUnread()
   }
 
+  function handleWhitelist(ip) {
+    if (!ip || whitelistedIps.includes(ip)) return
+    updateIpWhitelist([...whitelistedIps, ip])
+    setSelected(null)
+  }
+
   return (
     <div style={{ display: 'flex', height: '100vh', width: '100vw', overflow: 'hidden' }}>
       <Sidebar
@@ -74,6 +79,7 @@ export default function App() {
         bandwidth={bandwidth}
         filter={filter}
         onFilterChange={setFilter}
+        onWhitelist={handleWhitelist}
       />
 
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
@@ -100,8 +106,9 @@ export default function App() {
             <LangToggle />
             <ViewToggle view={view} onChange={setView} />
             <ExportButton nodes={nodes} edges={edges} lanDevices={lanDevices} alerts={alerts} />
-            <ProcessFilter excluded={excludedProcesses} onChange={setExcludedProcesses} nodes={nodes} />
+            <ProcessFilter excluded={excludedProcesses} onChange={updateProcessFilter} nodes={nodes} />
             <PortFilter ports={portFilter} onUpdate={updatePortFilter} />
+            <IPWhitelist ips={whitelistedIps} onUpdate={updateIpWhitelist} />
             <CaptureToggle capturing={capturing} onToggle={toggleCapture} />
             <AlertBell unread={unread} onClick={handleBell} />
             <StatusBadge status={status} lanCount={Object.keys(lanDevices).length} />
@@ -470,6 +477,129 @@ function PortFilter({ ports, onUpdate }) {
               cursor: 'pointer',
             }}>
               {t('port_all')}
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+const IPV4_RE = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/
+
+function isValidIp(ip) {
+  const m = ip.match(IPV4_RE)
+  return !!m && m.slice(1).every(o => +o >= 0 && +o <= 255)
+}
+
+function IPWhitelist({ ips, onUpdate }) {
+  const { t } = useT()
+  const [open, setOpen] = useState(false)
+  const [input, setInput] = useState('')
+  const [error, setError] = useState(false)
+  const ref = useRef(null)
+
+  useEffect(() => {
+    function onClickOutside(e) {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false)
+    }
+    document.addEventListener('mousedown', onClickOutside)
+    return () => document.removeEventListener('mousedown', onClickOutside)
+  }, [])
+
+  function addIp(e) {
+    e.preventDefault()
+    const ip = input.trim()
+    if (!isValidIp(ip)) { setError(true); return }
+    if (ips.includes(ip)) { setInput(''); return }
+    setError(false)
+    setInput('')
+    onUpdate([...ips, ip])
+  }
+
+  function removeIp(ip) {
+    onUpdate(ips.filter(x => x !== ip))
+  }
+
+  const active = ips.length > 0
+
+  return (
+    <div ref={ref} style={{ position: 'relative' }}>
+      <button onClick={() => setOpen(v => !v)} style={{
+        display: 'flex', alignItems: 'center', gap: 6,
+        background: active ? '#153824' : '#1e293b',
+        border: `1px solid ${active ? '#22c55e' : '#334155'}`,
+        borderRadius: 20, padding: '5px 14px',
+        cursor: 'pointer', color: active ? '#86efac' : '#64748b',
+        fontSize: 11, fontWeight: 600, transition: 'all 0.15s',
+      }}>
+        <ShieldOff size={11} />
+        {t('ip_whitelist')}
+        {active && (
+          <span style={{
+            background: '#22c55e', color: '#052e16',
+            borderRadius: 10, padding: '0 6px', fontSize: 10,
+          }}>{ips.length}</span>
+        )}
+      </button>
+
+      {open && (
+        <div style={{
+          position: 'absolute', top: '110%', right: 0, zIndex: 100,
+          background: '#1e293b', border: '1px solid #334155',
+          borderRadius: 10, padding: 12, minWidth: 220,
+          boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
+        }}>
+          <div style={{ fontSize: 11, color: '#94a3b8', marginBottom: 8 }}>
+            {t('ip_whitelist_hint')}
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: ips.length ? 10 : 0 }}>
+            {ips.map(ip => (
+              <span key={ip} style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                background: '#0f172a', border: '1px solid #22c55e',
+                borderRadius: 6, padding: '3px 8px',
+                fontSize: 11, color: '#86efac', fontFamily: 'monospace',
+              }}>
+                {ip}
+                <button onClick={() => removeIp(ip)} style={{
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  color: '#64748b', padding: 0, lineHeight: 1, fontSize: 13,
+                }}>×</button>
+              </span>
+            ))}
+          </div>
+
+          <form onSubmit={addIp} style={{ display: 'flex', gap: 6 }}>
+            <input
+              autoFocus
+              value={input}
+              onChange={e => { setInput(e.target.value); setError(false) }}
+              placeholder={t('ip_placeholder')}
+              style={{
+                flex: 1, background: '#0f172a',
+                border: `1px solid ${error ? '#ef4444' : '#334155'}`,
+                borderRadius: 6, padding: '5px 8px',
+                color: '#e2e8f0', fontSize: 11, outline: 'none',
+              }}
+            />
+            <button type="submit" style={{
+              background: '#22c55e', border: 'none', borderRadius: 6,
+              padding: '5px 10px', color: '#052e16', fontSize: 11,
+              cursor: 'pointer', fontWeight: 600,
+            }}>+</button>
+          </form>
+          {error && <div style={{ fontSize: 10, color: '#ef4444', marginTop: 4 }}>{t('ip_invalid')}</div>}
+
+          {active && (
+            <button onClick={() => onUpdate([])} style={{
+              marginTop: 10, width: '100%', background: 'none',
+              border: '1px solid #334155', borderRadius: 6,
+              padding: '4px 0', color: '#64748b', fontSize: 10,
+              cursor: 'pointer',
+            }}>
+              {t('ip_clear')}
             </button>
           )}
         </div>

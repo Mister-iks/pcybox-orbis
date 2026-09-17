@@ -30,7 +30,12 @@ export default function ForceGraph({ nodes, edges, lanDevices, alertedNodes = ne
       .append('path').attr('fill', '#475569').attr('d', 'M0,-5L10,0L0,5')
 
     const allNodes = [...Object.values(nodes), ...Object.values(lanDevices)]
-    const allEdges = Object.values(edges)
+    const nodeIds = new Set(allNodes.map(n => n.id))
+    const allEdges = Object.values(edges).filter(e => {
+      const src = typeof e.source === 'object' ? e.source.id : e.source
+      const tgt = typeof e.target === 'object' ? e.target.id : e.target
+      return nodeIds.has(src) && nodeIds.has(tgt)
+    })
 
     // Restore cached positions  locked nodes won't move at all
     let hasNew = false

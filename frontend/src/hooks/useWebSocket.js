@@ -13,6 +13,8 @@ export function useWebSocket(url) {
   const [bandwidth, setBandwidth] = useState([])
   const [capturing, setCapturing] = useState(true)
   const [portFilter, setPortFilter] = useState([])
+  const [excludedProcesses, setExcludedProcesses] = useState([])
+  const [whitelistedIps, setWhitelistedIps] = useState([])
   const [media, setMedia] = useState({ mic: [], camera: [] })
   const bwRef = useRef({})  // { secondTimestamp: totalBytes }
 
@@ -48,6 +50,10 @@ export function useWebSocket(url) {
 
         if (msg.type === 'init') {
           if (msg.media) setMedia(msg.media)
+          if (msg.capturing !== undefined) setCapturing(msg.capturing)
+          if (msg.ports !== undefined) setPortFilter(msg.ports)
+          if (msg.excluded_processes !== undefined) setExcludedProcesses(msg.excluded_processes)
+          if (msg.whitelisted_ips !== undefined) setWhitelistedIps(msg.whitelisted_ips)
           const nodeMap = {}, edgeMap = {}, deviceMap = {}
           msg.nodes.forEach(n => {
             if (n.category === 'lan_device') deviceMap[n.id] = n
@@ -82,6 +88,22 @@ export function useWebSocket(url) {
         if (msg.type === 'capture_status') {
           setCapturing(msg.capturing)
           if (msg.ports !== undefined) setPortFilter(msg.ports)
+          if (msg.excluded_processes !== undefined) setExcludedProcesses(msg.excluded_processes)
+          if (msg.whitelisted_ips !== undefined) setWhitelistedIps(msg.whitelisted_ips)
+        }
+
+        if (msg.type === 'nodes_removed') {
+          const removed = new Set(msg.ids || [])
+          setNodes(prev => {
+            const out = {}
+            for (const [id, n] of Object.entries(prev)) if (!removed.has(id)) out[id] = n
+            return out
+          })
+          setEdges(prev => {
+            const out = {}
+            for (const [id, e] of Object.entries(prev)) if (!removed.has(e.source) && !removed.has(e.target)) out[id] = e
+            return out
+          })
         }
 
         if (msg.type === 'media') {
@@ -128,5 +150,25 @@ export function useWebSocket(url) {
     setPortFilter(data.ports)
   }
 
-  return { nodes, edges, lanDevices, packets, alerts, unread, clearUnread, status, bandwidth, capturing, toggleCapture, portFilter, updatePortFilter, media }
+  async function updateProcessFilter(excluded) {
+    const res = await fetch(`${API_BASE}/capture/processes`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ excluded }),
+    })
+    const data = await res.json()
+    setExcludedProcesses(data.excluded_processes)
+  }
+
+  async function updateIpWhitelist(ips) {
+    const res = await fetch(`${API_BASE}/capture/whitelist`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ips }),
+    })
+    const data = await res.json()
+    setWhitelistedIps(data.whitelisted_ips)
+  }
+
+  return { nodes, edges, lanDevices, packets, alerts, unread, clearUnread, status, bandwidth, capturing, toggleCapture, portFilter, updatePortFilter, excludedProcesses, updateProcessFilter, whitelistedIps, updateIpWhitelist, media }
 }
