@@ -406,8 +406,10 @@ async def get_timeline(minutes: int = 60) -> dict:
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket) -> None:
     await websocket.accept()
-    connected_clients.append(websocket)
 
+    # Send init before registering the client so a concurrent broadcast
+    # (e.g. an 'update' referencing the 'local' node) can never reach it
+    # first and leave the frontend graph in an inconsistent state.
     await websocket.send_text(json.dumps({
         "type": "init",
         "nodes": list(nodes.values()) + list(lan_devices.values()),
@@ -419,6 +421,8 @@ async def websocket_endpoint(websocket: WebSocket) -> None:
         "excluded_processes": sorted(_excluded_processes),
         "whitelisted_ips": sorted(_whitelisted_ips),
     }))
+
+    connected_clients.append(websocket)
 
     try:
         while True:
